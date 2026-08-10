@@ -1181,7 +1181,7 @@
 
         let addedCount = 0;
         let renewedCount = 0;
-        let skippedDuplicateCount = 0;
+        let duplicateCount = 0;
         const currentDate = new Date().toISOString().substring(0, 10);
 
         for (const match of matches) {
@@ -1235,7 +1235,6 @@
                 }
             }
 
-            // 대소문자 및 공백 무시하고 동일 Entitlement ID 매칭
             const existingItem = licenses.find(item => 
                 item.entitlementId && rawEntId && 
                 item.entitlementId.trim().toUpperCase() === rawEntId.trim().toUpperCase()
@@ -1257,7 +1256,7 @@
                     await saveToFirestore(updatedData, true, existingItem.docId);
                     renewedCount++;
                 } else {
-                    skippedDuplicateCount++;
+                    duplicateCount++;
                 }
             } else {
                 const newEntry = {
@@ -1285,7 +1284,8 @@
         closeEmailModal();
         let msg = '';
         if (addedCount > 0) msg += `신규 라이선스 ${addedCount}건 등록 `;
-        if (renewedCount > 0) msg += `Expiration Date 갱신 ${renewedCount}건 완료 `;
+        if (renewedCount > 0) msg += `만료일 갱신 ${renewedCount}건 완료 `;
+        if (duplicateCount > 0) msg += `이미 등록된 정보(중복) ${duplicateCount}건 `;
         alert(msg.trim() || '처리 완료되었습니다.');
     }
 
@@ -1305,7 +1305,6 @@
 
         const currentDate = new Date().toISOString().substring(0, 10);
         
-        // 대소문자 및 공백 무시하고 동일 Entitlement ID 매칭
         const existingItem = licenses.find(item => 
             item.entitlementId && entitlementId && 
             item.entitlementId.trim().toUpperCase() === entitlementId.trim().toUpperCase()
@@ -1327,7 +1326,8 @@
                 await saveToFirestore(updatedData, true, existingItem.docId);
                 alert('동일 Entitlement ID가 존재하여 최신 만료일로 갱신되었습니다.');
             } else {
-                alert('입력하신 만료일이 기존 만료일보다 이전이거나 동일하여 변경되지 않았습니다.');
+                // 중복 등록 또는 만료일이 더 이전/동일한 경우 요청하신 문구 출력
+                alert('이미 등록된 정보입니다.');
                 closeManualModal();
                 return;
             }
