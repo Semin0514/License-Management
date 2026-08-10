@@ -30,13 +30,6 @@
             
             --border-color: #e2e8f0;
             --border-hover: #cbd5e1;
-            
-            --status-active-bg: #dcfce7;
-            --status-active-text: #15803d;
-            --status-warning-bg: #fef3c7;
-            --status-warning-text: #b45309;
-            --status-danger-bg: #fee2e2;
-            --status-danger-text: #b91c1c;
 
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -65,8 +58,8 @@
         .btn-email:hover { background-color: #0369a1; }
         .btn-excel { background-color: #ffffff; color: #166534; border-color: #bbf7d0; }
         .btn-excel:hover { background-color: #f0fdf4; border-color: #86efac; }
-        .btn-danger { background-color: #ffffff; color: var(--status-danger-text); border-color: #fca5a5; }
-        .btn-danger:hover { background-color: var(--status-danger-bg); }
+        .btn-danger { background-color: #ffffff; color: #b91c1c; border-color: #fca5a5; }
+        .btn-danger:hover { background-color: #fee2e2; }
         .btn-template { background-color: var(--primary-light); color: var(--primary); border-color: #c7d2fe; padding: 6px 12px; font-size: 12px; }
         .btn-template:hover { background-color: #e0e7ff; }
 
@@ -120,10 +113,6 @@
         .filter-dropdown { display: none; position: absolute; top: 100%; right: 0; left: auto; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 500; min-width: 220px; padding: 14px; font-weight: normal; color: var(--text-main); text-align: left; }
         .filter-dropdown.show { display: block; }
         
-        .sort-btn-group { display: flex; gap: 6px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-        .sort-btn-group button { flex: 1; padding: 5px; font-size: 12px; background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px; }
-        .sort-btn-group button:hover { background: var(--border-hover); }
-
         .filter-search { width: 100%; padding: 6px 8px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 8px; outline: none; }
         .option-list { max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 4px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
         .option-item { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 4px; border-radius: 3px; }
@@ -131,21 +120,23 @@
         .filter-actions { display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 8px; }
         .filter-actions button { padding: 4px 10px; font-size: 12px; border-radius: 4px; }
 
-        /* 밝은 뱃지(Pill) 스타일 */
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; letter-spacing: -0.2px; }
-        .badge-eval { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-        .badge-paid { background-color: var(--primary-light); color: var(--primary); border: 1px solid #c7d2fe; }
-        .badge-renewed { background-color: #ffffff; color: var(--secondary); border: 1px dashed var(--secondary); margin-left: 4px; }
+        /* 글자 왼쪽 미니멀 색상 점(Dot) 디자인 스타일 */
+        .status-dot-text { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+        
+        /* 상태별 색상 점 정의 */
+        .dot-active { background-color: #16a34a; }
+        .dot-expiring { background-color: #d97706; }
+        .dot-expired { background-color: #dc2626; }
+        .dot-eval { background-color: #64748b; }
+        .dot-paid { background-color: var(--primary); }
+
+        .badge-renewed { background-color: #ffffff; color: var(--secondary); border: 1px dashed var(--secondary); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px; }
         .badge-dday { background-color: #f1f5f9; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; margin-left: 4px; }
         .badge-dday.active { background-color: #ef4444; color: #ffffff; border: none; }
         
-        .status-active { background-color: var(--status-active-bg); color: var(--status-active-text); }
-        .status-expiring { background-color: var(--status-warning-bg); color: var(--status-warning-text); }
-        .status-expired { background-color: var(--status-danger-bg); color: var(--status-danger-text); }
-
         .account-tag { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }
         .customer-name { font-size: 12px; color: var(--text-main); font-weight: 700; display: block; margin-top: 2px; text-decoration: underline; text-underline-offset: 3px; }
-        .manager-tag { font-size: 11px; color: var(--primary); font-weight: 600; display: block; margin-top: 2px; }
 
         .product-cell { position: relative; padding-right: 55px !important; }
         .btn-detail { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 4px 8px; font-size: 11px; background-color: var(--primary); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; }
@@ -216,10 +207,7 @@
             min-height: 280px;
         }
 
-        /* 상세 항목 모달 */
-        .detail-submodal {
-            z-index: 1500 !important;
-        }
+        .detail-submodal { z-index: 1500 !important; }
 
         /* 사이드바 Drawer */
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.3); z-index: 2000; }
@@ -243,20 +231,18 @@
         .renewal-box { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-size: 12px; color: var(--text-main); }
         .renewal-box ul { margin-top: 6px; padding-left: 18px; max-height: 80px; overflow-y: auto; }
 
-        /* 연결된 카드 */
         .connected-card { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
         .connected-card.current { border-color: var(--primary); background: #ffffff; border-width: 2px; }
         .connected-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--text-main); }
         .connected-card-body { color: var(--text-muted); font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
 
-        /* 메모 타임라인 및 감사 로그 */
         .memo-container { display: flex; flex-direction: column; height: 100%; min-height: 380px; justify-content: space-between; gap: 14px; }
         .memo-history-list { flex: 1; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
         .memo-item { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 12px; position: relative; }
         .memo-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px; }
         .memo-time { font-size: 11px; color: var(--text-muted); font-weight: 600; }
         .memo-text { color: var(--text-main); white-space: pre-wrap; word-break: break-all; line-height: 1.4; }
-        .btn-memo-del { background: none; border: none; color: var(--status-danger-text); font-size: 11px; cursor: pointer; padding: 0 2px; font-weight: 700; }
+        .btn-memo-del { background: none; border: none; color: #b91c1c; font-size: 11px; cursor: pointer; padding: 0 2px; font-weight: 700; }
         .btn-memo-del:hover { text-decoration: underline; }
 
         .memo-input-box { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 12px; }
@@ -321,10 +307,10 @@
                 <button class="tab-btn" id="tab-expiring" onclick="setCategoryFilter('EXPIRING', this)">종료 임박건</button>
             </div>
         </div>
-        <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 담당자, 제품명, ID 등)...">
+        <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 제품명, ID 등)...">
     </div>
 
-    <!-- 데이터 테이블 -->
+    <!-- 데이터 테이블 (담당자 컬럼 제거됨) -->
     <div class="table-container">
         <table>
             <thead>
@@ -416,28 +402,6 @@
                             <div class="filter-actions">
                                 <button style="background:#e2e8f0;" onclick="resetColumnFilter('type')">초기화</button>
                                 <button class="btn-primary" onclick="applyColumnFilter('type')">적용</button>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th>
-                        <div class="th-box">
-                            <span>Internal Manager (담당 영업/엔지니어)</span>
-                            <button class="btn-col-filter" id="btn-filter-manager" onclick="toggleFilterMenu('manager', event)" title="필터">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="filter-dropdown" id="filter-menu-manager">
-                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('manager', this.value)">
-                            <div class="option-list">
-                                <label class="option-item"><input type="checkbox" id="chk-all-manager" onchange="toggleSelectAllOptions('manager', this.checked)" checked> (전체 선택)</label>
-                                <div id="options-manager"></div>
-                            </div>
-                            <div class="filter-actions">
-                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('manager')">초기화</button>
-                                <button class="btn-primary" onclick="applyColumnFilter('manager')">적용</button>
                             </div>
                         </div>
                     </th>
@@ -792,7 +756,6 @@
             </div>
         </div>
 
-        <!-- 변경 이력(Audit Trail) 탭 -->
         <div class="sidebar-tab-content" id="tabContentAudit">
             <div class="memo-container">
                 <div class="memo-history-list" id="auditHistoryList"></div>
@@ -842,7 +805,6 @@
         product: null,
         quantity: null,
         type: null,
-        manager: null,
         startDate: null,
         expDate: null,
         status: null
@@ -852,10 +814,8 @@
     let productChartInstance = null;
     let typeChartInstance = null;
 
-    // 현재 접속한 관리자 식별용 타임스탬프 기반 명칭 또는 세션 기본값
     const currentAdminName = "팀원(moa3203!)";
 
-    // Firebase Firestore 실시간 감지
     db.collection("licenses").onSnapshot((snapshot) => {
         licenses = [];
         snapshot.forEach((doc) => {
@@ -930,11 +890,6 @@
         if (colKey === 'accountInfo') {
             return `${item.accountName || '-'} (Acc No: ${item.accountNo || '-'})`;
         }
-        if (colKey === 'manager') {
-            const sales = item.salesManager || '미지정';
-            const se = item.seManager || '미지정';
-            return `Sales: ${sales} / SE: ${se}`;
-        }
         if (colKey === 'quantity') return String(item.quantity || '1');
         if (colKey === 'status') return calculateStatus(item.expDate, item.type);
         return String(item[colKey] || '-');
@@ -1007,16 +962,10 @@
         checkboxes.forEach(chk => chk.checked = source.checked);
     }
 
-    // 감사 로그 기록 생성 헬퍼 함수
     function createAuditLog(action, details) {
         const now = new Date();
         const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        return {
-            timestamp,
-            user: currentAdminName,
-            action,
-            details
-        };
+        return { timestamp, user: currentAdminName, action, details };
     }
 
     async function deleteSelectedLicenses() {
@@ -1077,14 +1026,15 @@
         } else {
             filteredItems.forEach(item => {
                 const statusText = calculateStatus(item.expDate, item.type);
+                const dotClass = statusText === '종료 임박' ? 'dot-expiring' : (statusText === '종료' ? 'dot-expired' : 'dot-active');
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="padding: 10px 12px;"><strong>${item.accountName || '-'}</strong> ${item.customerName ? `(${item.customerName})` : ''}</td>
                     <td style="padding: 10px 12px;">${item.product || '-'}</td>
                     <td style="padding: 10px 12px; text-align: center;"><strong>${item.quantity || 1}</strong></td>
-                    <td style="padding: 10px 12px; text-align: center;"><span class="badge badge-eval">${item.type || '-'}</span></td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="status-dot-text"><span class="dot dot-eval"></span>${item.type || '-'}</span></td>
                     <td style="padding: 10px 12px; text-align: center;">${item.expDate || '-'}</td>
-                    <td style="padding: 10px 12px; text-align: center;"><span class="badge ${statusText === '종료 임박' ? 'status-expiring' : (statusText === '종료' ? 'status-expired' : 'status-active')}">${statusText}</span></td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="status-dot-text"><span class="dot ${dotClass}"></span>${statusText}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1618,7 +1568,7 @@
             card.innerHTML = `
                 <div class="connected-card-header">
                     <span>${conn.product} ${isCurrent ? '<span style="color:var(--primary); font-size:11px;">(현재)</span>' : ''}</span>
-                    <span class="badge ${status === '종료 임박' ? 'status-expiring' : (status === '종료' ? 'status-expired' : 'status-active')}">${status}</span>
+                    <span>${status}</span>
                 </div>
                 <div class="connected-card-body">
                     <div>고객사: ${conn.accountName || '-'} | 담당: Sales(${conn.salesManager || '-'}), SE(${conn.seManager || '-'})</div>
@@ -1727,19 +1677,18 @@
             const statusText = calculateStatus(item.expDate, item.type);
             const dDayInfo = getDDay(item.expDate);
             
-            let statusBadgeClass = 'status-active';
-            if (statusText === '종료 임박') statusBadgeClass = 'status-expiring';
-            else if (statusText === '종료') statusBadgeClass = 'status-expired';
+            let statusDotClass = 'dot-active';
+            if (statusText === '종료 임박') statusDotClass = 'dot-expiring';
+            else if (statusText === '종료') statusDotClass = 'dot-expired';
 
             let dDayClass = 'badge-dday';
             const isEval = (item.type || '').trim().toUpperCase() === 'EVALUATION';
             const activeThreshold = isEval ? 14 : 90;
             if (dDayInfo.days !== null && dDayInfo.days <= activeThreshold && dDayInfo.days >= 0) dDayClass += ' active';
 
-            const badgeClass = isTemp ? 'badge-eval' : 'badge-paid';
-            const renewBadge = item.isRenewed ? `<span class="badge badge-renewed">갱신 ${item.renewalCount || 1}회</span>` : '';
+            const typeDotClass = isTemp ? 'dot-eval' : 'dot-paid';
+            const renewBadge = item.isRenewed ? `<span class="badge-renewed">갱신 ${item.renewalCount || 1}회</span>` : '';
             const customerTag = item.customerName ? `<span class="customer-name">${item.customerName}</span>` : '';
-            const managerTag = `<span class="manager-tag">Sales: ${item.salesManager || '-'} | SE: ${item.seManager || '-'}</span>`;
             const dDayBadge = dDayInfo.text ? `<span class="${dDayClass}">${dDayInfo.text}</span>` : '';
 
             tr.innerHTML = `
@@ -1756,11 +1705,10 @@
                     <button class="btn-detail" onclick="openDetailSidebar(${item.id})">상세</button>
                 </td>
                 <td class="text-center"><strong>${item.quantity}</strong></td>
-                <td class="text-center"><span class="badge ${badgeClass}">${item.type}</span></td>
-                <td class="text-center">${managerTag}</td>
+                <td class="text-center"><span class="status-dot-text"><span class="dot ${typeDotClass}"></span>${item.type}</span></td>
                 <td class="text-center">${item.startDate}</td>
                 <td class="text-center">${item.expDate} ${dDayBadge} ${renewBadge}</td>
-                <td class="text-center"><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+                <td class="text-center"><span class="status-dot-text"><span class="dot ${statusDotClass}"></span>${statusText}</span></td>
             `;
             tbody.appendChild(tr);
         });
