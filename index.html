@@ -265,10 +265,10 @@
 </head>
 <body>
 
-<!-- 1단계: 팀원 전용 비밀번호 보안 스크립트 -->
+<!-- 팀원 전용 비밀번호 보안 스크립트 (요청 사항 1: moa3203!) -->
 <script>
     const teamPassword = prompt("팀원 전용 보안 비밀번호를 입력하세요:");
-    if (teamPassword !== "moa3203!") { // 필요 시 비밀번호 변경 가능
+    if (teamPassword !== moa3203!) {
         alert("비밀번호가 틀렸습니다. 접근할 수 없습니다.");
         document.body.innerHTML = "<div style='text-align:center; margin-top:100px; font-family:sans-serif;'><h1>접근 권한이 없습니다.</h1><p>올바른 비밀번호를 입력해야 시스템을 사용할 수 있습니다.</p></div>";
         throw new Error("Access Denied");
@@ -282,6 +282,7 @@
             <button class="btn-dashboard" onclick="openDashboardModal()">Dashboard</button>
             <button class="btn-manual" onclick="openManualModal()">단건 수동 등록</button>
             <button class="btn-email" onclick="openEmailModal()">이메일 원문 분석 등록</button>
+            <button class="btn-danger" onclick="deleteSelectedLicenses()" style="background-color: #fee2e2; color: #b91c1c; border-color: #fca5a5;">선택 삭제</button>
             <button class="btn-excel" onclick="exportToXLSX()">엑셀 내보내기 (XLSX)</button>
         </div>
     </div>
@@ -327,6 +328,9 @@
         <table>
             <thead>
                 <tr>
+                    <th style="width: 40px; text-align: center;">
+                        <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)">
+                    </th>
                     <th>
                         <div class="th-box">
                             <span>Account Info (고객 정보)</span>
@@ -337,10 +341,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-accountInfo">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('accountInfo', 'asc')">오름차순</button>
-                                <button onclick="applySort('accountInfo', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('accountInfo', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-accountInfo" onchange="toggleSelectAllOptions('accountInfo', this.checked)" checked> (전체 선택)</label>
@@ -363,10 +363,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-product">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('product', 'asc')">오름차순</button>
-                                <button onclick="applySort('product', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('product', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-product" onchange="toggleSelectAllOptions('product', this.checked)" checked> (전체 선택)</label>
@@ -389,10 +385,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-quantity">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('quantity', 'asc')">오름차순</button>
-                                <button onclick="applySort('quantity', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('quantity', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-quantity" onchange="toggleSelectAllOptions('quantity', this.checked)" checked> (전체 선택)</label>
@@ -415,10 +407,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-type">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('type', 'asc')">오름차순</button>
-                                <button onclick="applySort('type', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('type', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-type" onchange="toggleSelectAllOptions('type', this.checked)" checked> (전체 선택)</label>
@@ -441,10 +429,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-startDate">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('startDate', 'asc')">오름차순</button>
-                                <button onclick="applySort('startDate', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('startDate', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-startDate" onchange="toggleSelectAllOptions('startDate', this.checked)" checked> (전체 선택)</label>
@@ -467,10 +451,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-expDate">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('expDate', 'asc')">오름차순</button>
-                                <button onclick="applySort('expDate', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('expDate', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-expDate" onchange="toggleSelectAllOptions('expDate', this.checked)" checked> (전체 선택)</label>
@@ -493,10 +473,6 @@
                             </button>
                         </div>
                         <div class="filter-dropdown" id="filter-menu-status">
-                            <div class="sort-btn-group">
-                                <button onclick="applySort('status', 'asc')">오름차순</button>
-                                <button onclick="applySort('status', 'desc')">내림차순</button>
-                            </div>
                             <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('status', this.value)">
                             <div class="option-list">
                                 <label class="option-item"><input type="checkbox" id="chk-all-status" onchange="toggleSelectAllOptions('status', this.checked)" checked> (전체 선택)</label>
@@ -796,7 +772,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let licenses = []; // 실시간 DB 데이터를 담을 배열
+    let licenses = []; 
     let currentCategoryFilter = 'ALL';
 
     let columnFilters = {
@@ -809,20 +785,16 @@
         status: null
     };
 
-    let currentSort = { col: null, dir: 'asc' };
-
     let accountChartInstance = null;
     let productChartInstance = null;
     let typeChartInstance = null;
 
-    // Firebase Firestore 실시간 감지 (한 명이 수정하면 모든 팀원 화면에 실시간 반영)
+    // Firebase Firestore 실시간 감지
     db.collection("licenses").onSnapshot((snapshot) => {
         licenses = [];
         snapshot.forEach((doc) => {
             licenses.push({ docId: doc.id, ...doc.data() });
         });
-        // 최신 등록순 정렬 (id 기준 내림차순 등)
-        licenses.sort((a, b) => b.id - a.id);
         renderTableAndDashboard();
     });
 
@@ -954,10 +926,29 @@
         renderTableAndDashboard();
     }
 
-    function applySort(colKey, dir) {
-        currentSort = { col: colKey, dir: dir };
-        closeAllFilterMenus();
-        renderTableAndDashboard();
+    /* 전체 선택 및 일괄 삭제 기능 */
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(chk => chk.checked = source.checked);
+    }
+
+    async function deleteSelectedLicenses() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('삭제할 항목을 선택해주세요.');
+            return;
+        }
+
+        if (confirm(`선택한 ${checkedBoxes.length}개의 라이선스 내역을 정말 삭제하시겠습니까?`)) {
+            const batch = db.batch();
+            checkedBoxes.forEach(chk => {
+                const docId = chk.getAttribute('data-docid');
+                const docRef = db.collection("licenses").doc(docId);
+                batch.delete(docRef);
+            });
+            await batch.commit();
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
     }
 
     function openDashboardModal() {
@@ -1154,7 +1145,6 @@
         renderTableAndDashboard();
     }
 
-    // 파이어베이스에 추가 또는 업데이트 수행
     async function saveToFirestore(entry, isUpdate = false, docId = null) {
         if (isUpdate && docId) {
             await db.collection("licenses").doc(docId).set(entry, { merge: true });
@@ -1248,7 +1238,7 @@
                         renewalCount: (existingItem.renewalCount || 0) + 1,
                         renewalHistory: renewalHistory
                     };
-                    delete updatedData.docId; // docId는 제외하고 저장
+                    delete updatedData.docId;
                     await saveToFirestore(updatedData, true, existingItem.docId);
                     renewedCount++;
                 } else {
@@ -1555,16 +1545,12 @@
             }
         });
 
-        if (currentSort.col) {
-            const colKey = currentSort.col;
-            const dirMult = currentSort.dir === 'asc' ? 1 : -1;
-            filtered.sort((a, b) => {
-                let valA = getColumnValue(a, colKey);
-                let valB = getColumnValue(b, colKey);
-                if (colKey === 'quantity') return (parseInt(valA) - parseInt(valB)) * dirMult;
-                return valA.localeCompare(valB, 'ko-KR', { numeric: true }) * dirMult;
-            });
-        }
+        // 요청 사항 3: Expiration Date 기준으로 내림차순 고정 (필터 및 검색 결과 내에서도 유지)
+        filtered.sort((a, b) => {
+            const dateA = a.expDate && a.expDate !== '-' ? new Date(a.expDate).getTime() : 0;
+            const dateB = b.expDate && b.expDate !== '-' ? new Date(b.expDate).getTime() : 0;
+            return dateB - dateA; // 내림차순 (최신/먼 미래 날짜가 위로)
+        });
 
         document.getElementById('totalCount').innerText = filtered.length;
         tbody.innerHTML = '';
@@ -1588,6 +1574,9 @@
             const dDayBadge = dDayInfo.text ? `<span class="${dDayClass}">${dDayInfo.text}</span>` : '';
 
             tr.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" class="row-checkbox" data-docid="${item.docId}">
+                </td>
                 <td>
                     <strong>${item.accountName || '-'}</strong>
                     ${customerTag}
