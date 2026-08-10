@@ -841,7 +841,6 @@
         return { text: '', days: diffDays };
     }
 
-    // Evaluation인 경우에만 2주(14일), 그 외에는 3개월(90일) 기준으로 종료 임박 판정
     function calculateStatus(expDateStr, type) {
         if (!expDateStr || expDateStr === '-') return '유지';
         const today = new Date();
@@ -1236,7 +1235,12 @@
                 }
             }
 
-            const existingItem = licenses.find(item => item.entitlementId === rawEntId);
+            // 대소문자 및 공백 무시하고 동일 Entitlement ID 매칭
+            const existingItem = licenses.find(item => 
+                item.entitlementId && rawEntId && 
+                item.entitlementId.trim().toUpperCase() === rawEntId.trim().toUpperCase()
+            );
+
             if (existingItem) {
                 if (isNewerDate(expDate, existingItem.expDate)) {
                     const renewalHistory = existingItem.renewalHistory || [];
@@ -1300,7 +1304,12 @@
         if (!entitlementId || !product) { alert('Entitlement ID와 Product는 필수 입력 항목입니다.'); return; }
 
         const currentDate = new Date().toISOString().substring(0, 10);
-        const existingItem = licenses.find(item => item.entitlementId === entitlementId);
+        
+        // 대소문자 및 공백 무시하고 동일 Entitlement ID 매칭
+        const existingItem = licenses.find(item => 
+            item.entitlementId && entitlementId && 
+            item.entitlementId.trim().toUpperCase() === entitlementId.trim().toUpperCase()
+        );
 
         if (existingItem) {
             if (isNewerDate(expDate, existingItem.expDate)) {
@@ -1459,7 +1468,7 @@
         document.getElementById('connectedEntIdText').innerText = item.entitlementId || '-';
         const connectedContainer = document.getElementById('connectedListContainer');
         connectedContainer.innerHTML = '';
-        const sameEntLicenses = licenses.filter(l => l.entitlementId && l.entitlementId === item.entitlementId);
+        const sameEntLicenses = licenses.filter(l => l.entitlementId && item.entitlementId && l.entitlementId.trim().toUpperCase() === item.entitlementId.trim().toUpperCase());
 
         sameEntLicenses.forEach(conn => {
             const isCurrent = conn.id === item.id;
