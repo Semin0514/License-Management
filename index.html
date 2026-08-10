@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansys 라이선스 발급 관리 시스템</title>
+    <!-- SheetJS (XLSX) 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js 라이브러리 (대시보드 그래프용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDK (v10 Compat 버전) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --secondary: #0284c7;
+            
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-subtle: #f1f5f9;
+            
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            
+            --border-color: #e2e8f0;
+            --border-hover: #cbd5e1;
+            
+            --status-active-bg: #dcfce7;
+            --status-active-text: #15803d;
+            --status-warning-bg: #fef3c7;
+            --status-warning-text: #b45309;
+            --status-danger-bg: #fee2e2;
+            --status-danger-text: #b91c1c;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 24px; width: 100%; min-height: 100vh; line-height: 1.5; }
+        
+        .container { width: 100%; max-width: 100%; background: var(--bg-card); border-radius: 12px; padding: 28px 32px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+        
+        /* 헤더 스타일 */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+        h1 { color: var(--text-main); font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+        h1::before { content: ''; display: inline-block; width: 6px; height: 22px; background-color: var(--primary); border-radius: 3px; }
+        
+        /* 버튼 스타일 */
+        button { border: 1px solid transparent; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-primary { background-color: var(--primary); color: #ffffff; border-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-manual { background-color: #ffffff; color: var(--text-main); border-color: var(--border-color); }
+        .btn-manual:hover { background-color: var(--bg-subtle); border-color: var(--border-hover); }
+        .btn-dashboard { background-color: var(--text-main); color: #ffffff; }
+        .btn-dashboard:hover { background-color: #1e293b; }
+        .btn-email { background-color: var(--secondary); color: #ffffff; }
+        .btn-email:hover { background-color: #0369a1; }
+        .btn-excel { background-color: #ffffff; color: #166534; border-color: #bbf7d0; }
+        .btn-excel:hover { background-color: #f0fdf4; border-color: #86efac; }
+        .btn-danger { background-color: #ffffff; color: var(--status-danger-text); border-color: #fca5a5; }
+        .btn-danger:hover { background-color: var(--status-danger-bg); }
+        .btn-template { background-color: var(--primary-light); color: var(--primary); border-color: #c7d2fe; padding: 6px 12px; font-size: 12px; }
+        .btn-template:hover { background-color: #e0e7ff; }
+
+        /* 요약 카드 바 */
+        .alert-summary-bar { display: flex; gap: 20px; margin-bottom: 28px; }
+        .summary-card { flex: 1; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+        .summary-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .summary-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background-color: var(--primary); }
+        .summary-card.warning::before { background-color: #f59e0b; }
+        .summary-card.danger::before { background-color: #ef4444; }
+        .summary-card .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+        .summary-card .card-value { font-size: 26px; font-weight: 800; color: var(--text-main); }
+
+        /* 입력 폼 그리드 */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 16px; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
+        .input-group input, .input-group select, .input-group textarea { padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #ffffff; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+        .input-group input[readonly] { background-color: var(--bg-subtle); color: var(--text-muted); cursor: not-allowed; }
+
+        /* 필터 툴바 */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .toolbar h3 { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .search-box { width: 320px; padding: 9px 12px 9px 36px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>') no-repeat 12px center; }
+        .search-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); outline: none; }
+
+        .filter-tabs { display: flex; gap: 4px; background: var(--bg-subtle); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .tab-btn { padding: 6px 14px; font-size: 12px; font-weight: 600; background: none; border: none; cursor: pointer; border-radius: 6px; color: var(--text-muted); transition: all 0.2s ease; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: var(--shadow-sm); }
+
+        /* 테이블 스타일 */
+        .table-container { overflow-x: auto; min-height: 400px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px; background: #ffffff; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th, td { border-bottom: 1px solid var(--border-color); padding: 12px 16px; white-space: nowrap; }
+        
+        th { background-color: var(--bg-subtle); color: var(--text-muted); font-weight: 700; font-size: 12px; position: relative; user-select: none; text-align: center; border-right: 1px solid var(--border-color); }
+        th:last-child { border-right: none; }
+        tr:hover { background-color: #f8fafc; }
+        td { color: var(--text-main); border-right: 1px solid #f1f5f9; }
+        td:last-child { border-right: none; }
+
+        .text-center { text-align: center !important; }
+        .th-box { display: flex; align-items: center; justify-content: center; position: relative; width: 100%; }
+        
+        .btn-col-filter { position: absolute; right: 0; background: none; border: none; cursor: pointer; opacity: 0.5; padding: 2px; transition: opacity 0.2s; display: flex; align-items: center; }
+        .btn-col-filter:hover, .btn-col-filter.active-filter { opacity: 1.0; }
+        .btn-col-filter.active-filter svg path { fill: var(--primary); stroke: var(--primary); }
+
+        .filter-dropdown { display: none; position: absolute; top: 100%; right: 0; left: auto; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 500; min-width: 220px; padding: 14px; font-weight: normal; color: var(--text-main); text-align: left; }
+        .filter-dropdown.show { display: block; }
+        
+        .sort-btn-group { display: flex; gap: 6px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .sort-btn-group button { flex: 1; padding: 5px; font-size: 12px; background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px; }
+        .sort-btn-group button:hover { background: var(--border-hover); }
+
+        .filter-search { width: 100%; padding: 6px 8px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 8px; outline: none; }
+        .option-list { max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 4px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+        .option-item { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 4px; border-radius: 3px; }
+        .option-item:hover { background-color: var(--bg-subtle); }
+        .filter-actions { display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 8px; }
+        .filter-actions button { padding: 4px 10px; font-size: 12px; border-radius: 4px; }
+
+        /* 밝은 뱃지(Pill) 스타일 */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; letter-spacing: -0.2px; }
+        .badge-eval { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .badge-paid { background-color: var(--primary-light); color: var(--primary); border: 1px solid #c7d2fe; }
+        .badge-renewed { background-color: #ffffff; color: var(--secondary); border: 1px dashed var(--secondary); margin-left: 4px; }
+        .badge-dday { background-color: #f1f5f9; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; margin-left: 4px; }
+        .badge-dday.active { background-color: #ef4444; color: #ffffff; border: none; }
+        
+        .status-active { background-color: var(--status-active-bg); color: var(--status-active-text); }
+        .status-expiring { background-color: var(--status-warning-bg); color: var(--status-warning-text); }
+        .status-expired { background-color: var(--status-danger-bg); color: var(--status-danger-text); }
+
+        .account-tag { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }
+        .customer-name { font-size: 12px; color: var(--text-main); font-weight: 700; display: block; margin-top: 2px; text-decoration: underline; text-underline-offset: 3px; }
+
+        .product-cell { position: relative; padding-right: 55px !important; }
+        .btn-detail { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 4px 8px; font-size: 11px; background-color: var(--primary); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; }
+        .product-cell:hover .btn-detail { display: inline-block; }
+        .btn-detail:hover { background-color: var(--primary-hover); }
+
+        /* 모달 팝업 공통 */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #ffffff; padding: 28px; border-radius: 12px; width: 90%; max-width: 700px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); }
+        .modal-content h2 { margin-bottom: 8px; font-size: 18px; color: var(--text-main); font-weight: 800; }
+        .modal-content p { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+        .modal-content textarea { width: 100%; height: 240px; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; font-family: monospace; outline: none; margin-bottom: 16px; resize: vertical; }
+
+        /* 대시보드 모달 확장 */
+        .dashboard-modal-content {
+            width: 96vw !important;
+            height: 92vh !important;
+            max-width: 1800px !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: 24px 28px;
+        }
+
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(12, 1fr); 
+            gap: 20px; 
+            margin-top: 12px; 
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .dashboard-card { 
+            background: #ffffff; 
+            border: 1px solid var(--border-color); 
+            border-radius: 10px; 
+            padding: 18px 22px; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .dashboard-card h3 { 
+            font-size: 14px; 
+            font-weight: 800; 
+            color: var(--text-main); 
+            margin-bottom: 14px; 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 10px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-card h3 span.hint {
+            font-size: 11px;
+            font-weight: normal;
+            color: var(--text-muted);
+        }
+
+        .chart-container {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            min-height: 280px;
+        }
+
+        /* 상세 항목 모달 */
+        .detail-submodal {
+            z-index: 1500 !important;
+        }
+
+        /* 사이드바 Drawer */
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.3); z-index: 2000; }
+        .sidebar { position: fixed; top: 0; right: -500px; width: 480px; height: 100%; background: #ffffff; box-shadow: var(--shadow-lg); transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2001; padding: 28px; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; border-left: 1px solid var(--border-color); }
+        .sidebar.open { right: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px; }
+        .sidebar-header h2 { font-size: 18px; color: var(--text-main); font-weight: 800; }
+
+        /* 사이드바 탭 */
+        .sidebar-nav-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; position: relative; }
+        .sidebar-nav-tab { background: none; border: none; padding: 10px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; position: relative; transition: color 0.2s; }
+        .sidebar-nav-tab.active { color: var(--primary); font-weight: 800; }
+        .sidebar-nav-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background-color: var(--primary); }
+        .sidebar-nav-tab .help-icon { display: inline-block; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--text-muted); font-size: 10px; line-height: 13px; text-align: center; color: var(--text-muted); margin-left: 4px; font-weight: normal; }
+
+        .sidebar-tab-content { display: none; flex-direction: column; gap: 14px; flex: 1; }
+        .sidebar-tab-content.active { display: flex; }
+
+        .sidebar-footer { border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        .renewal-box { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-size: 12px; color: var(--text-main); }
+        .renewal-box ul { margin-top: 6px; padding-left: 18px; max-height: 80px; overflow-y: auto; }
+
+        /* 연결된 카드 */
+        .connected-card { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .connected-card.current { border-color: var(--primary); background: #ffffff; border-width: 2px; }
+        .connected-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--text-main); }
+        .connected-card-body { color: var(--text-muted); font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+
+        /* 메모 타임라인 */
+        .memo-container { display: flex; flex-direction: column; height: 100%; min-height: 380px; justify-content: space-between; gap: 14px; }
+        .memo-history-list { flex: 1; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+        .memo-item { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 12px; position: relative; }
+        .memo-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px; }
+        .memo-time { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        .memo-text { color: var(--text-main); white-space: pre-wrap; word-break: break-all; line-height: 1.4; }
+        .btn-memo-del { background: none; border: none; color: var(--status-danger-text); font-size: 11px; cursor: pointer; padding: 0 2px; font-weight: 700; }
+        .btn-memo-del:hover { text-decoration: underline; }
+
+        .memo-input-box { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 12px; }
+        .memo-textarea { width: 100%; height: 65px !important; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; resize: none; outline: none; }
+        .memo-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+    </style>
+</head>
+<body>
+
+<!-- 1단계: 팀원 전용 비밀번호 보안 스크립트 -->
+<script>
+    const teamPassword = prompt("팀원 전용 보안 비밀번호를 입력하세요:");
+    if (teamPassword !== "moasoft1234") { // 필요 시 비밀번호 변경 가능
+        alert("비밀번호가 틀렸습니다. 접근할 수 없습니다.");
+        document.body.innerHTML = "<div style='text-align:center; margin-top:100px; font-family:sans-serif;'><h1>접근 권한이 없습니다.</h1><p>올바른 비밀번호를 입력해야 시스템을 사용할 수 있습니다.</p></div>";
+        throw new Error("Access Denied");
+    }
+</script>
+
+<div class="container">
+    <div class="header">
+        <h1>Ansys 라이선스 발급 관리 시스템</h1>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-dashboard" onclick="openDashboardModal()">Dashboard</button>
+            <button class="btn-manual" onclick="openManualModal()">단건 수동 등록</button>
+            <button class="btn-email" onclick="openEmailModal()">이메일 원문 분석 등록</button>
+            <button class="btn-excel" onclick="exportToXLSX()">엑셀 내보내기 (XLSX)</button>
+        </div>
+    </div>
+
+    <!-- 알림 요약 바 -->
+    <div class="alert-summary-bar">
+        <div class="summary-card">
+            <div>
+                <div class="card-title">전체 관리 건수</div>
+                <div class="card-value" id="cardTotalCount">0</div>
+            </div>
+        </div>
+        <div class="summary-card warning">
+            <div>
+                <div class="card-title">종료 임박 (3개월 이내)</div>
+                <div class="card-value" id="cardExpiringCount">0</div>
+            </div>
+        </div>
+        <div class="summary-card danger">
+            <div>
+                <div class="card-title">기간 종료</div>
+                <div class="card-value" id="cardExpiredCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 리스트 도구 모음 -->
+    <div class="toolbar">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <h3>발급 목록 (<span id="totalCount">0</span>건)</h3>
+            <div class="filter-tabs">
+                <button class="tab-btn active" id="tab-all" onclick="setCategoryFilter('ALL', this)">전체</button>
+                <button class="tab-btn" id="tab-paid" onclick="setCategoryFilter('PAID', this)">구매 라이선스</button>
+                <button class="tab-btn" id="tab-eval" onclick="setCategoryFilter('EVAL', this)">임시 라이선스</button>
+                <button class="tab-btn" id="tab-expiring" onclick="setCategoryFilter('EXPIRING', this)">종료 임박건</button>
+            </div>
+        </div>
+        <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 제품명, ID 등)...">
+    </div>
+
+    <!-- 데이터 테이블 -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        <div class="th-box">
+                            <span>Account Info (고객 정보)</span>
+                            <button class="btn-col-filter" id="btn-filter-accountInfo" onclick="toggleFilterMenu('accountInfo', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-accountInfo">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('accountInfo', 'asc')">오름차순</button>
+                                <button onclick="applySort('accountInfo', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('accountInfo', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-accountInfo" onchange="toggleSelectAllOptions('accountInfo', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-accountInfo"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('accountInfo')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('accountInfo')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Product</span>
+                            <button class="btn-col-filter" id="btn-filter-product" onclick="toggleFilterMenu('product', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-product">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('product', 'asc')">오름차순</button>
+                                <button onclick="applySort('product', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('product', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-product" onchange="toggleSelectAllOptions('product', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-product"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('product')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('product')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Count</span>
+                            <button class="btn-col-filter" id="btn-filter-quantity" onclick="toggleFilterMenu('quantity', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-quantity">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('quantity', 'asc')">오름차순</button>
+                                <button onclick="applySort('quantity', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('quantity', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-quantity" onchange="toggleSelectAllOptions('quantity', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-quantity"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('quantity')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('quantity')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Type (구분)</span>
+                            <button class="btn-col-filter" id="btn-filter-type" onclick="toggleFilterMenu('type', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-type">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('type', 'asc')">오름차순</button>
+                                <button onclick="applySort('type', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('type', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-type" onchange="toggleSelectAllOptions('type', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-type"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('type')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('type')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Start Date</span>
+                            <button class="btn-col-filter" id="btn-filter-startDate" onclick="toggleFilterMenu('startDate', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-startDate">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('startDate', 'asc')">오름차순</button>
+                                <button onclick="applySort('startDate', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('startDate', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-startDate" onchange="toggleSelectAllOptions('startDate', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-startDate"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('startDate')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('startDate')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Expiration Date (D-Day)</span>
+                            <button class="btn-col-filter" id="btn-filter-expDate" onclick="toggleFilterMenu('expDate', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-expDate">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('expDate', 'asc')">오름차순</button>
+                                <button onclick="applySort('expDate', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('expDate', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-expDate" onchange="toggleSelectAllOptions('expDate', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-expDate"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('expDate')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('expDate')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Status (상태)</span>
+                            <button class="btn-col-filter" id="btn-filter-status" onclick="toggleFilterMenu('status', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-status">
+                            <div class="sort-btn-group">
+                                <button onclick="applySort('status', 'asc')">오름차순</button>
+                                <button onclick="applySort('status', 'desc')">내림차순</button>
+                            </div>
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('status', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-status" onchange="toggleSelectAllOptions('status', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-status"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('status')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('status')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="licenseTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 대시보드 전체 화면 확장 모달 팝업 -->
+<div class="modal-overlay" id="dashboardModal">
+    <div class="modal-content dashboard-modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+            <h2>Ansys 라이선스 종합 분석 대시보드</h2>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer; color: var(--text-muted);" onclick="closeDashboardModal()">✕</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card" style="grid-column: span 12;">
+                <h3>
+                    Account Name별 보유 라이선스 수량 (Top 10)
+                    <span class="hint">MOASOFT 제외 | 막대를 클릭하면 해당 고객사의 상세 라이선스 목록을 볼 수 있습니다.</span>
+                </h3>
+                <div class="chart-container">
+                    <canvas id="chartAccount"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-card" style="grid-column: span 7;">
+                <h3>
+                    제품(Product)별 보유 현황 (Top 10)
+                    <span class="hint">MOASOFT 및 Channel Partner Bundle 제외 | 막대를 클릭하여 상세 조회</span>
+                </h3>
+                <div class="chart-container">
+                    <canvas id="chartProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-card" style="grid-column: span 5;">
+                <h3>
+                    라이선스 유형(Type) 비중
+                    <span class="hint">MOASOFT 제외 | 항목을 클릭하여 상세 조회</span>
+                </h3>
+                <div class="chart-container" style="display: flex; justify-content: center; align-items: center;">
+                    <canvas id="chartType"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px;">
+            <button class="btn-manual" onclick="closeDashboardModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 그래프 클릭 시 개별 상세 정보를 보여주는 드릴다운 팝업 모달 -->
+<div class="modal-overlay detail-submodal" id="chartDetailModal">
+    <div class="modal-content" style="max-width: 900px; width: 90%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 14px;">
+            <h2 id="chartDetailTitle">선택 항목 상세 내역</h2>
+            <button style="background:none; border:none; font-size:18px; cursor:pointer; color: var(--text-muted);" onclick="closeChartDetailModal()">✕</button>
+        </div>
+        
+        <p style="margin-bottom: 12px; font-weight: 600;" id="chartDetailSubTitle">총 0건의 등록 정보가 검색되었습니다.</p>
+        
+        <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="padding: 10px 12px;">Account Name</th>
+                        <th style="padding: 10px 12px;">Product</th>
+                        <th style="padding: 10px 12px; text-align: center;">Count</th>
+                        <th style="padding: 10px 12px; text-align: center;">Type</th>
+                        <th style="padding: 10px 12px; text-align: center;">Expiration Date</th>
+                        <th style="padding: 10px 12px; text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="chartDetailTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="btn-group" style="margin-top: 16px; justify-content: flex-end;">
+            <button class="btn-manual" onclick="closeChartDetailModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 단건 수동 등록 팝업 모달 -->
+<div class="modal-overlay" id="manualModal">
+    <div class="modal-content" style="max-width: 760px;">
+        <h2>단건 수동 라이선스 등록</h2>
+        <p>라이선스 상세 정보를 직접 입력하여 등록합니다.</p>
+        
+        <div style="display: flex; gap: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+            <div class="input-group" style="flex: 1;">
+                <label>Account Name (고객사)</label>
+                <input type="text" id="clientName" placeholder="예: Korea Aerospace Industries">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>고객 이름 (담당자)</label>
+                <input type="text" id="customerName" placeholder="예: 홍길동 팀장">
+            </div>
+            <div class="input-group" style="width: 170px;">
+                <label>Account Number</label>
+                <input type="text" id="accountNo" placeholder="예: 1059189">
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="input-group" style="grid-column: span 2;">
+                <label>Product (제품명)</label>
+                <input type="text" id="productName" placeholder="Ansys SCADE Display Advanced Modeler Seat - TECS">
+            </div>
+            <div class="input-group">
+                <label>Count (수량)</label>
+                <input type="number" id="quantity" value="1" min="1">
+            </div>
+            <div class="input-group">
+                <label>Type (구분)</label>
+                <input type="text" id="licenseType" placeholder="Evaluation / Paid Up">
+            </div>
+            <div class="input-group">
+                <label>Start Date</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="input-group">
+                <label>Expiration Date</label>
+                <input type="date" id="expDate">
+            </div>
+            <div class="input-group">
+                <label>Order ID</label>
+                <input type="text" id="orderId" placeholder="ER-80599">
+            </div>
+            <div class="input-group" style="grid-column: span 2;">
+                <label>Entitlement ID (고정 ID)</label>
+                <input type="text" id="entitlementId" placeholder="Ent-1059189-...">
+            </div>
+        </div>
+
+        <div class="btn-group" style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-manual" onclick="closeManualModal()">취소</button>
+            <button class="btn-primary" onclick="addSingleLicense()">등록 완료</button>
+        </div>
+    </div>
+</div>
+
+<!-- 이메일 원문 분석 팝업 모달 -->
+<div class="modal-overlay" id="emailModal">
+    <div class="modal-content">
+        <h2>Ansys 이메일 원문 붙여넣기</h2>
+        <p>수신받으신 이메일 내용 전체를 복사하여 아래 상자에 붙여넣고 [자동 분석 및 등록]을 눌러주세요.</p>
+        <textarea id="emailText" placeholder="여기에 이메일 내용을 전체 복사하여 붙여넣으세요..."></textarea>
+        <div class="btn-group" style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-manual" onclick="closeEmailModal()">취소</button>
+            <button class="btn-email" onclick="parseAndAddEmailText()">자동 분석 및 등록</button>
+        </div>
+    </div>
+</div>
+
+<!-- 갱신 안내 메일 생성 모달 -->
+<div class="modal-overlay" id="emailTemplateModal">
+    <div class="modal-content">
+        <h2>갱신/만료 안내 메일 초안</h2>
+        <p>고객사 담당자에게 발송할 안내 메일 초안입니다. 복사하여 이메일에 붙여넣어 사용하세요.</p>
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label>메일 제목</label>
+            <input type="text" id="templateSubject" readonly style="font-weight: bold; background-color: var(--bg-subtle);">
+        </div>
+        <div class="input-group" style="margin-bottom: 16px;">
+            <label>메일 본문</label>
+            <textarea id="templateBody" style="height: 260px; font-family: sans-serif; resize: vertical;" readonly></textarea>
+        </div>
+        <div class="btn-group" style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-manual" onclick="closeEmailTemplateModal()">닫기</button>
+            <button class="btn-primary" onclick="copyEmailTemplate()">메일 내용 전체 복사</button>
+        </div>
+    </div>
+</div>
+
+<!-- 오른쪽 상세정보 사이드바 Drawer -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="detailSidebar">
+    <div>
+        <div class="sidebar-header">
+            <h2>라이선스 상세 정보 및 수정</h2>
+            <button style="background:none; border:none; font-size:18px; cursor:pointer; color: var(--text-muted);" onclick="closeSidebar()">✕</button>
+        </div>
+
+        <div class="sidebar-nav-tabs">
+            <button class="sidebar-nav-tab active" id="btn-tab-info" onclick="switchSidebarTab('info')">상세 정보</button>
+            <button class="sidebar-nav-tab" id="btn-tab-memo" onclick="switchSidebarTab('memo')">메모</button>
+            <button class="sidebar-nav-tab" id="btn-tab-connected" onclick="switchSidebarTab('connected')">
+                연결된 정보<span class="help-icon" title="동일한 Entitlement ID를 가진 라이선스 목록입니다.">?</span>
+            </button>
+        </div>
+
+        <div class="sidebar-tab-content active" id="tabContentInfo">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
+                <button class="btn-template" onclick="generateRenewalEmailFromSidebar()">갱신 안내 메일 작성</button>
+            </div>
+            <input type="hidden" id="editId">
+            <div class="input-group">
+                <label>Account Name (고객사)</label>
+                <input type="text" id="editAccountName">
+            </div>
+            <div class="input-group">
+                <label>고객 이름 (담당자)</label>
+                <input type="text" id="editCustomerName" placeholder="고객 이름을 입력하세요">
+            </div>
+            <div class="input-group">
+                <label>Account Number</label>
+                <input type="text" id="editAccountNo">
+            </div>
+            <div class="input-group">
+                <label>Product (제품명)</label>
+                <input type="text" id="editProduct">
+            </div>
+            <div class="input-group">
+                <label>Count (수량)</label>
+                <input type="number" id="editQuantity" min="1">
+            </div>
+            <div class="input-group">
+                <label>Type (구분)</label>
+                <input type="text" id="editType">
+            </div>
+            <div class="input-group">
+                <label>Start Date</label>
+                <input type="date" id="editStartDate">
+            </div>
+            <div class="input-group">
+                <label>Expiration Date</label>
+                <input type="date" id="editExpDate">
+            </div>
+            <div class="input-group">
+                <label>Order ID (수정 불가)</label>
+                <input type="text" id="editOrderId" readonly>
+            </div>
+            <div class="input-group">
+                <label>Entitlement ID (수정 불가 고정 ID)</label>
+                <input type="text" id="editEntitlementId" readonly>
+            </div>
+
+            <div class="renewal-box">
+                <strong>갱신/유지보수 이력: <span id="renewalCountText">0회</span></strong>
+                <ul id="renewalHistoryList"></ul>
+            </div>
+        </div>
+
+        <div class="sidebar-tab-content" id="tabContentMemo">
+            <div class="memo-container">
+                <div class="memo-history-list" id="memoHistoryList"></div>
+                <div class="memo-input-box">
+                    <textarea class="memo-textarea" id="newMemoText" placeholder="새로운 메모를 입력하세요..."></textarea>
+                    <button class="btn-primary" style="align-self: flex-end; padding: 6px 14px; font-size: 12px;" onclick="addMemoItem()">메모 추가</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-tab-content" id="tabContentConnected">
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                현재 등록된 Entitlement ID (<strong id="connectedEntIdText">-</strong>) 와 동일한 라이선스 내역입니다.
+            </p>
+            <div id="connectedListContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 460px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+        <button class="btn-danger" onclick="deleteLicenseFromSidebar()">삭제</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-manual" onclick="closeSidebar()">취소</button>
+            <button class="btn-primary" onclick="saveDetailEdit()">수정사항 저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Firebase 설정 및 초기화
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhRabAjFmNGcBVN9u3Lq-8l_mRh8znelA",
+      authDomain: "license-management-1365f.firebaseapp.com",
+      projectId: "license-management-1365f",
+      storageBucket: "license-management-1365f.firebasestorage.app",
+      messagingSenderId: "413969915323",
+      appId: "1:413969915323:web:a103c0c98811b91189f89e",
+      measurementId: "G-L5R0K77BNM"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let licenses = []; // 실시간 DB 데이터를 담을 배열
+    let currentCategoryFilter = 'ALL';
+
+    let columnFilters = {
+        accountInfo: null,
+        product: null,
+        quantity: null,
+        type: null,
+        startDate: null,
+        expDate: null,
+        status: null
+    };
+
+    let currentSort = { col: null, dir: 'asc' };
+
+    let accountChartInstance = null;
+    let productChartInstance = null;
+    let typeChartInstance = null;
+
+    // Firebase Firestore 실시간 감지 (한 명이 수정하면 모든 팀원 화면에 실시간 반영)
+    db.collection("licenses").onSnapshot((snapshot) => {
+        licenses = [];
+        snapshot.forEach((doc) => {
+            licenses.push({ docId: doc.id, ...doc.data() });
+        });
+        // 최신 등록순 정렬 (id 기준 내림차순 등)
+        licenses.sort((a, b) => b.id - a.id);
+        renderTableAndDashboard();
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown') && !e.target.closest('.btn-col-filter')) {
+            closeAllFilterMenus();
+        }
+    });
+
+    function closeAllFilterMenus() {
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+    }
+
+    function toggleFilterMenu(colKey, event) {
+        event.stopPropagation();
+        const targetMenu = document.getElementById(`filter-menu-${colKey}`);
+        const isAlreadyOpen = targetMenu.classList.contains('show');
+        closeAllFilterMenus();
+
+        if (!isAlreadyOpen) {
+            targetMenu.classList.add('show');
+            populateFilterOptions(colKey);
+        }
+    }
+
+    function isNewerDate(dateStr1, dateStr2) {
+        if (!dateStr1 || dateStr1 === '-') return false;
+        if (!dateStr2 || dateStr2 === '-') return true;
+        return new Date(dateStr1).getTime() > new Date(dateStr2).getTime();
+    }
+
+    function getDDay(expDateStr) {
+        if (!expDateStr || expDateStr === '-') return { text: '', days: null };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expDate = new Date(expDateStr);
+        if (isNaN(expDate.getTime())) return { text: '', days: null };
+
+        const diffTime = expDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return { text: 'D-Day', days: 0 };
+        if (diffDays > 0) return { text: `D-${diffDays}`, days: diffDays };
+        return { text: '', days: diffDays };
+    }
+
+    function calculateStatus(expDateStr) {
+        if (!expDateStr || expDateStr === '-') return '유지';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expDate = new Date(expDateStr);
+        if (isNaN(expDate.getTime())) return '유지';
+
+        if (expDate < today) return '종료';
+        const threeMonthsLater = new Date(today);
+        threeMonthsLater.setDate(today.getDate() + 90);
+        if (expDate <= threeMonthsLater) return '종료 임박';
+        return '유지';
+    }
+
+    function getColumnValue(item, colKey) {
+        if (colKey === 'accountInfo') {
+            return `${item.accountName || '-'} (Acc No: ${item.accountNo || '-'})`;
+        }
+        if (colKey === 'quantity') return String(item.quantity || '1');
+        if (colKey === 'status') return calculateStatus(item.expDate);
+        return String(item[colKey] || '-');
+    }
+
+    function populateFilterOptions(colKey) {
+        const container = document.getElementById(`options-${colKey}`);
+        container.innerHTML = '';
+        const uniqueVals = Array.from(new Set(licenses.map(item => getColumnValue(item, colKey)))).sort();
+        const activeSet = columnFilters[colKey];
+
+        uniqueVals.forEach(val => {
+            const label = document.createElement('label');
+            label.className = 'option-item';
+            const isChecked = activeSet === null || activeSet.has(val);
+            label.innerHTML = `<input type="checkbox" class="opt-chk-${colKey}" value="${escapeHtml(val)}" ${isChecked ? 'checked' : ''}> ${escapeHtml(val)}`;
+            container.appendChild(label);
+        });
+
+        const allChk = document.getElementById(`chk-all-${colKey}`);
+        if (allChk) {
+            allChk.checked = (activeSet === null || activeSet.size === uniqueVals.length);
+        }
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function toggleSelectAllOptions(colKey, isChecked) {
+        document.querySelectorAll(`.opt-chk-${colKey}`).forEach(chk => chk.checked = isChecked);
+    }
+
+    function searchFilterOptions(colKey, query) {
+        const q = query.toLowerCase();
+        const items = document.querySelectorAll(`#options-${colKey} .option-item`);
+        items.forEach(item => {
+            const text = item.innerText.toLowerCase();
+            item.style.display = text.includes(q) ? 'flex' : 'none';
+        });
+    }
+
+    function applyColumnFilter(colKey) {
+        const checkedBoxes = document.querySelectorAll(`.opt-chk-${colKey}:checked`);
+        const allBoxes = document.querySelectorAll(`.opt-chk-${colKey}`);
+
+        if (checkedBoxes.length === allBoxes.length) {
+            columnFilters[colKey] = null;
+            document.getElementById(`btn-filter-${colKey}`).classList.remove('active-filter');
+        } else {
+            const selectedSet = new Set();
+            checkedBoxes.forEach(chk => selectedSet.add(chk.value));
+            columnFilters[colKey] = selectedSet;
+            document.getElementById(`btn-filter-${colKey}`).classList.add('active-filter');
+        }
+
+        closeAllFilterMenus();
+        renderTableAndDashboard();
+    }
+
+    function resetColumnFilter(colKey) {
+        columnFilters[colKey] = null;
+        document.getElementById(`btn-filter-${colKey}`).classList.remove('active-filter');
+        closeAllFilterMenus();
+        renderTableAndDashboard();
+    }
+
+    function applySort(colKey, dir) {
+        currentSort = { col: colKey, dir: dir };
+        closeAllFilterMenus();
+        renderTableAndDashboard();
+    }
+
+    function openDashboardModal() {
+        document.getElementById('dashboardModal').style.display = 'flex';
+        renderDashboardCharts();
+    }
+
+    function closeDashboardModal() {
+        document.getElementById('dashboardModal').style.display = 'none';
+    }
+
+    function showChartDetailModal(filterCategory, filterValue) {
+        const titleEl = document.getElementById('chartDetailTitle');
+        const subTitleEl = document.getElementById('chartDetailSubTitle');
+        const tbody = document.getElementById('chartDetailTableBody');
+
+        titleEl.innerText = `[${filterCategory}] ${filterValue} 상세 내역`;
+        const dashboardLicenses = licenses.filter(l => (l.accountName || '').trim().toUpperCase() !== 'MOASOFT');
+
+        let filteredItems = [];
+        if (filterCategory === '고객사') {
+            filteredItems = dashboardLicenses.filter(l => (l.accountName || '미지정').trim() === filterValue);
+        } else if (filterCategory === '제품') {
+            filteredItems = dashboardLicenses.filter(l => (l.product || '기타 제품').trim() === filterValue);
+        } else if (filterCategory === '유형') {
+            filteredItems = dashboardLicenses.filter(l => (l.type || 'Unassigned').trim() === filterValue);
+        }
+
+        subTitleEl.innerText = `총 ${filteredItems.length}건의 라이선스 데이터가 검색되었습니다.`;
+        tbody.innerHTML = '';
+
+        if (filteredItems.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">해당 조건의 데이터가 없습니다.</td></tr>';
+        } else {
+            filteredItems.forEach(item => {
+                const statusText = calculateStatus(item.expDate);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px 12px;"><strong>${item.accountName || '-'}</strong> ${item.customerName ? `(${item.customerName})` : ''}</td>
+                    <td style="padding: 10px 12px;">${item.product || '-'}</td>
+                    <td style="padding: 10px 12px; text-align: center;"><strong>${item.quantity || 1}</strong></td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="badge badge-eval">${item.type || '-'}</span></td>
+                    <td style="padding: 10px 12px; text-align: center;">${item.expDate || '-'}</td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="badge ${statusText === '종료 임박' ? 'status-expiring' : (statusText === '종료' ? 'status-expired' : 'status-active')}">${statusText}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        document.getElementById('chartDetailModal').style.display = 'flex';
+    }
+
+    function closeChartDetailModal() {
+        document.getElementById('chartDetailModal').style.display = 'none';
+    }
+
+    function renderDashboardCharts() {
+        const isMoasoft = (name) => (name || '').trim().toUpperCase() === 'MOASOFT';
+
+        const accountMap = {};
+        licenses.forEach(item => {
+            const name = item.accountName ? item.accountName.trim() : '미지정';
+            if (isMoasoft(name)) return;
+            const qty = parseInt(item.quantity || 1, 10);
+            accountMap[name] = (accountMap[name] || 0) + qty;
+        });
+        const sortedAccounts = Object.entries(accountMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const accountLabels = sortedAccounts.map(x => x[0]);
+        const accountData = sortedAccounts.map(x => x[1]);
+
+        const productMap = {};
+        licenses.forEach(item => {
+            const accName = item.accountName ? item.accountName.trim() : '';
+            if (isMoasoft(accName)) return;
+            const prod = item.product ? item.product.trim() : '기타 제품';
+            if (prod.toUpperCase().includes('CHANNEL PARTNER BUNDLE')) return;
+            const qty = parseInt(item.quantity || 1, 10);
+            productMap[prod] = (productMap[prod] || 0) + qty;
+        });
+        const sortedProducts = Object.entries(productMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const productLabels = sortedProducts.map(x => x[0]);
+        const productData = sortedProducts.map(x => x[1]);
+
+        const typeMap = {};
+        licenses.forEach(item => {
+            const accName = item.accountName ? item.accountName.trim() : '';
+            if (isMoasoft(accName)) return;
+            const t = item.type ? item.type.trim() : 'Unassigned';
+            const qty = parseInt(item.quantity || 1, 10);
+            typeMap[t] = (typeMap[t] || 0) + qty;
+        });
+        const typeLabels = Object.keys(typeMap);
+        const typeData = Object.values(typeMap);
+
+        if (accountChartInstance) accountChartInstance.destroy();
+        if (productChartInstance) productChartInstance.destroy();
+        if (typeChartInstance) typeChartInstance.destroy();
+
+        Chart.defaults.font.family = 'Pretendard, sans-serif';
+        Chart.defaults.color = '#64748b';
+
+        const ctxAccount = document.getElementById('chartAccount').getContext('2d');
+        accountChartInstance = new Chart(ctxAccount, {
+            type: 'bar',
+            data: {
+                labels: accountLabels,
+                datasets: [{ label: '보유 수량(EA)', data: accountData, backgroundColor: '#4f46e5', borderColor: '#4338ca', borderWidth: 1, borderRadius: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                onClick: (e, activeElements) => {
+                    if (activeElements.length > 0) showChartDetailModal('고객사', accountLabels[activeElements[0].index]);
+                },
+                plugins: { legend: { display: false } },
+                scales: { x: { ticks: { font: { size: 11 } }, grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+
+        const ctxProduct = document.getElementById('chartProduct').getContext('2d');
+        productChartInstance = new Chart(ctxProduct, {
+            type: 'bar',
+            data: {
+                labels: productLabels,
+                datasets: [{ label: '수량', data: productData, backgroundColor: '#0284c7', borderColor: '#0369a1', borderWidth: 1, borderRadius: 6 }]
+            },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                onClick: (e, activeElements) => {
+                    if (activeElements.length > 0) showChartDetailModal('제품', productLabels[activeElements[0].index]);
+                },
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10 } }, grid: { display: false } } }
+            }
+        });
+
+        const ctxType = document.getElementById('chartType').getContext('2d');
+        const colorPalette = ['#4f46e5', '#0284c7', '#0d9488', '#16a34a', '#d97706', '#dc2626'];
+        typeChartInstance = new Chart(ctxType, {
+            type: 'doughnut',
+            data: {
+                labels: typeLabels,
+                datasets: [{ data: typeData, backgroundColor: colorPalette.slice(0, typeLabels.length), borderColor: '#ffffff', borderWidth: 3 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                onClick: (e, activeElements) => {
+                    if (activeElements.length > 0) showChartDetailModal('유형', typeLabels[activeElements[0].index]);
+                },
+                plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } } }
+            }
+        });
+    }
+
+    function openManualModal() { document.getElementById('manualModal').style.display = 'flex'; }
+    function closeManualModal() { document.getElementById('manualModal').style.display = 'none'; clearInputs(); }
+    function openEmailModal() { document.getElementById('emailModal').style.display = 'flex'; }
+    function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; document.getElementById('emailText').value = ''; }
+
+    function generateRenewalEmailFromSidebar() {
+        const id = parseFloat(document.getElementById('editId').value);
+        const item = licenses.find(l => l.id === id);
+        if (!item) return;
+
+        const dDayInfo = getDDay(item.expDate);
+        const dDayStr = dDayInfo.text ? ` (${dDayInfo.text})` : '';
+        const customerName = item.customerName ? `${item.customerName} ` : '';
+        const clientName = item.accountName || '고객사';
+
+        const subject = `[모아소프트] Ansys 라이선스 만료 및 갱신 안내 (${clientName})`;
+        const body = `안녕하세요, ${clientName} ${customerName}고객님.\n(주)모아소프트 영업부입니다.\n\n항상 저희 모아소프트를 이용해 주셔서 진심으로 감사드립니다.\n\n고객님께서 사용 중이신 Ansys 라이선스의 만료일이 다가옴에 따라 갱신 안내를 드립니다.\n\n■ 라이선스 상세 정보\n- 고객사명: ${clientName}\n- 담당자명: ${item.customerName || '담당자 미지정'} (Acc No: ${item.accountNo || '-'})\n- 제품명: ${item.product || '-'}\n- 수량: ${item.quantity || 1} EA\n- 계약 구분: ${item.type || '-'}\n- 만료 예정일: ${item.expDate || '-'}${dDayStr}\n- Entitlement ID: ${item.entitlementId || '-'}\n\n만료일 이후에는 라이선스 사용에 제한이 생길 수 있으니, 원활한 서비스 이용을 위해 사전 갱신을 권장해 드립니다.\n\n감사합니다.\n\n------------------------------------------------\n(주)모아소프트 영업부\nAnsys License Support Team\n`;
+
+        document.getElementById('templateSubject').value = subject;
+        document.getElementById('templateBody').value = body;
+        document.getElementById('emailTemplateModal').style.display = 'flex';
+    }
+
+    function closeEmailTemplateModal() { document.getElementById('emailTemplateModal').style.display = 'none'; }
+    function copyEmailTemplate() {
+        const subject = document.getElementById('templateSubject').value;
+        const body = document.getElementById('templateBody').value;
+        navigator.clipboard.writeText(`제목: ${subject}\n\n${body}`).then(() => alert('메일 내용이 복사되었습니다.'));
+    }
+
+    function isTempLicense(entitlementId, type, orderId) {
+        const entUpper = (entitlementId || '').toUpperCase();
+        const typeUpper = (type || '').toUpperCase();
+        const orderUpper = (orderId || '').toUpperCase();
+        return entUpper.includes('ER') || typeUpper.includes('EVALUATION') || orderUpper.startsWith('ER');
+    }
+
+    function setCategoryFilter(category, btnElement) {
+        currentCategoryFilter = category;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        renderTableAndDashboard();
+    }
+
+    // 파이어베이스에 추가 또는 업데이트 수행
+    async function saveToFirestore(entry, isUpdate = false, docId = null) {
+        if (isUpdate && docId) {
+            await db.collection("licenses").doc(docId).set(entry, { merge: true });
+        } else {
+            await db.collection("licenses").add(entry);
+        }
+    }
+
+    async function parseAndAddEmailText() {
+        const rawText = document.getElementById('emailText').value;
+        if (!rawText.trim()) { alert('이메일 내용을 입력해주세요.'); return; }
+
+        let accountNo = '-';
+        let accountName = '-';
+        const customerMatch = rawText.match(/customer\s+(\d+)\s*\(([^)]+)\)/i);
+        if (customerMatch) {
+            accountNo = customerMatch[1].trim();
+            accountName = customerMatch[2].trim();
+        }
+
+        const entitlementRegex = /(Ent-[A-Za-z0-9-]+)(.*?)(?=(?:Ent-|$))/gs;
+        const matches = [...rawText.matchAll(entitlementRegex)];
+        if (matches.length === 0) { alert('이메일 내에서 Entitlement 라이선스 항목을 찾을 수 없습니다.'); return; }
+
+        let addedCount = 0;
+        let renewedCount = 0;
+        let skippedDuplicateCount = 0;
+        const currentDate = new Date().toISOString().substring(0, 10);
+
+        for (const match of matches) {
+            const rawEntId = match[1].trim();
+            let restStr = match[2].trim();
+            const dateMatches = [...restStr.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)];
+            let startDate = '-';
+            let expDate = '-';
+            let orderId = '-';
+
+            if (dateMatches.length >= 2) {
+                startDate = dateMatches[0][1];
+                expDate = dateMatches[1][1];
+                const afterSecondDateIdx = dateMatches[1].index + dateMatches[1][0].length;
+                const afterDateStr = restStr.substring(afterSecondDateIdx).trim();
+                const orderMatch = afterDateStr.match(/^([A-Za-z0-9-]+)/);
+                if (orderMatch) orderId = orderMatch[1];
+            }
+
+            let infoStr = restStr;
+            if (dateMatches.length > 0) infoStr = restStr.substring(0, dateMatches[0].index).trim();
+
+            let product = infoStr;
+            let count = 1;
+            let type = 'Evaluation';
+
+            const tecsIndex = infoStr.toUpperCase().lastIndexOf('- TECS');
+            if (tecsIndex !== -1) {
+                const tecsEndIdx = tecsIndex + '- TECS'.length;
+                product = infoStr.substring(0, tecsEndIdx).trim();
+                const afterTecsStr = infoStr.substring(tecsEndIdx).trim();
+                const countAndTypeMatch = afterTecsStr.match(/^(\d+)\s*(.*)$/);
+                if (countAndTypeMatch) {
+                    count = parseInt(countAndTypeMatch[1], 10);
+                    type = countAndTypeMatch[2].trim() || 'Evaluation';
+                } else if (afterTecsStr) {
+                    type = afterTecsStr;
+                }
+            } else {
+                const typeMatch = infoStr.match(/(Paid Up|Paid|Lease|Evaluation|Commercial|Perpetual|Annual)$/i);
+                if (typeMatch) {
+                    type = typeMatch[1];
+                    infoStr = infoStr.substring(0, typeMatch.index).trim();
+                }
+                const countMatch = infoStr.match(/(\d+)$/);
+                if (countMatch) {
+                    count = parseInt(countMatch[1], 10);
+                    product = infoStr.substring(0, countMatch.index).trim();
+                } else {
+                    product = infoStr;
+                }
+            }
+
+            const existingItem = licenses.find(item => item.entitlementId === rawEntId);
+            if (existingItem) {
+                if (isNewerDate(expDate, existingItem.expDate)) {
+                    const renewalHistory = existingItem.renewalHistory || [];
+                    renewalHistory.push({ date: currentDate, prevExpDate: existingItem.expDate, newExpDate: expDate });
+
+                    const updatedData = {
+                        ...existingItem,
+                        expDate: expDate,
+                        isRenewed: true,
+                        renewalCount: (existingItem.renewalCount || 0) + 1,
+                        renewalHistory: renewalHistory
+                    };
+                    delete updatedData.docId; // docId는 제외하고 저장
+                    await saveToFirestore(updatedData, true, existingItem.docId);
+                    renewedCount++;
+                } else {
+                    skippedDuplicateCount++;
+                }
+            } else {
+                const newEntry = {
+                    id: Date.now() + Math.random(),
+                    accountName,
+                    customerName: '',
+                    accountNo,
+                    product: product || 'Ansys Product',
+                    quantity: count,
+                    type: type || 'Evaluation',
+                    startDate,
+                    expDate,
+                    orderId,
+                    entitlementId: rawEntId,
+                    isRenewed: false,
+                    renewalCount: 0,
+                    renewalHistory: [],
+                    memos: []
+                };
+                await saveToFirestore(newEntry, false);
+                addedCount++;
+            }
+        }
+
+        closeEmailModal();
+        let msg = '';
+        if (addedCount > 0) msg += `신규 라이선스 ${addedCount}건 등록 `;
+        if (renewedCount > 0) msg += `Expiration Date 갱신 ${renewedCount}건 완료 `;
+        alert(msg.trim() || '처리 완료되었습니다.');
+    }
+
+    async function addSingleLicense() {
+        const accountName = document.getElementById('clientName').value.trim();
+        const customerName = document.getElementById('customerName').value.trim();
+        const accountNo = document.getElementById('accountNo').value.trim();
+        const entitlementId = document.getElementById('entitlementId').value.trim();
+        const product = document.getElementById('productName').value.trim();
+        const quantity = document.getElementById('quantity').value;
+        const type = document.getElementById('licenseType').value.trim();
+        const startDate = document.getElementById('startDate').value;
+        const expDate = document.getElementById('expDate').value;
+        const orderId = document.getElementById('orderId').value.trim();
+
+        if (!entitlementId || !product) { alert('Entitlement ID와 Product는 필수 입력 항목입니다.'); return; }
+
+        const currentDate = new Date().toISOString().substring(0, 10);
+        const existingItem = licenses.find(item => item.entitlementId === entitlementId);
+
+        if (existingItem) {
+            if (isNewerDate(expDate, existingItem.expDate)) {
+                const renewalHistory = existingItem.renewalHistory || [];
+                renewalHistory.push({ date: currentDate, prevExpDate: existingItem.expDate, newExpDate: expDate });
+
+                const updatedData = {
+                    ...existingItem,
+                    expDate: expDate,
+                    isRenewed: true,
+                    renewalCount: (existingItem.renewalCount || 0) + 1,
+                    renewalHistory: renewalHistory
+                };
+                delete updatedData.docId;
+                await saveToFirestore(updatedData, true, existingItem.docId);
+                alert('동일 Entitlement ID가 존재하여 최신 만료일로 갱신되었습니다.');
+            } else {
+                alert('입력하신 만료일이 기존 만료일보다 이전이거나 동일하여 변경되지 않았습니다.');
+                closeManualModal();
+                return;
+            }
+        } else {
+            const newEntry = {
+                id: Date.now(),
+                accountName, customerName, accountNo, product, quantity, type, startDate, expDate, orderId, entitlementId,
+                isRenewed: false, renewalCount: 0, renewalHistory: [], memos: []
+            };
+            await saveToFirestore(newEntry, false);
+            alert('신규 라이선스가 등록되었습니다.');
+        }
+
+        closeManualModal();
+    }
+
+    async function deleteLicenseFromSidebar() {
+        const id = parseFloat(document.getElementById('editId').value);
+        const item = licenses.find(l => l.id === id);
+        if (!item) return;
+
+        if (confirm('해당 라이선스 내역을 삭제하시겠습니까?')) {
+            await db.collection("licenses").doc(item.docId).delete();
+            closeSidebar();
+        }
+    }
+
+    function clearInputs() {
+        document.getElementById('clientName').value = '';
+        document.getElementById('customerName').value = '';
+        document.getElementById('accountNo').value = '';
+        document.getElementById('entitlementId').value = '';
+        document.getElementById('productName').value = '';
+        document.getElementById('quantity').value = '1';
+        document.getElementById('licenseType').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('expDate').value = '';
+        document.getElementById('orderId').value = '';
+    }
+
+    function switchSidebarTab(tabName) {
+        document.querySelectorAll('.sidebar-nav-tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.sidebar-tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`btn-tab-${tabName}`).classList.add('active');
+        document.getElementById(`tabContent${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+    }
+
+    function renderMemoHistory(memos) {
+        const container = document.getElementById('memoHistoryList');
+        container.innerHTML = '';
+        if (!memos || memos.length === 0) {
+            container.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:30px 0;">등록된 메모가 없습니다.</div>';
+            return;
+        }
+        memos.forEach((memo, index) => {
+            const item = document.createElement('div');
+            item.className = 'memo-item';
+            item.innerHTML = `
+                <div class="memo-item-header">
+                    <span class="memo-time">${memo.timestamp}</span>
+                    <button class="btn-memo-del" onclick="deleteMemoItem(${index})">삭제</button>
+                </div>
+                <div class="memo-text">${escapeHtml(memo.text)}</div>
+            `;
+            container.appendChild(item);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function addMemoItem() {
+        const id = parseFloat(document.getElementById('editId').value);
+        const textInput = document.getElementById('newMemoText');
+        const text = textInput.value.trim();
+        if (!text) { alert('메모 내용을 입력해주세요.'); return; }
+
+        const item = licenses.find(l => l.id === id);
+        if (item) {
+            const memos = item.memos || [];
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            memos.push({ timestamp, text });
+
+            const updatedData = { ...item, memos };
+            delete updatedData.docId;
+            await saveToFirestore(updatedData, true, item.docId);
+            textInput.value = '';
+            renderMemoHistory(memos);
+        }
+    }
+
+    async function deleteMemoItem(memoIndex) {
+        const id = parseFloat(document.getElementById('editId').value);
+        const item = licenses.find(l => l.id === id);
+        if (item && item.memos) {
+            if (confirm('해당 메모를 삭제하시겠습니까?')) {
+                item.memos.splice(memoIndex, 1);
+                const updatedData = { ...item };
+                delete updatedData.docId;
+                await saveToFirestore(updatedData, true, item.docId);
+                renderMemoHistory(item.memos);
+            }
+        }
+    }
+
+    function openDetailSidebar(id) {
+        const item = licenses.find(l => l.id === id);
+        if (!item) return;
+
+        switchSidebarTab('info');
+        document.getElementById('editId').value = item.id;
+        document.getElementById('editAccountName').value = item.accountName || '';
+        document.getElementById('editCustomerName').value = item.customerName || '';
+        document.getElementById('editAccountNo').value = item.accountNo || '';
+        document.getElementById('editProduct').value = item.product || '';
+        document.getElementById('editQuantity').value = item.quantity || 1;
+        document.getElementById('editType').value = item.type || '';
+        document.getElementById('editStartDate').value = item.startDate || '';
+        document.getElementById('editExpDate').value = item.expDate || '';
+        document.getElementById('editOrderId').value = item.orderId || '';
+        document.getElementById('editEntitlementId').value = item.entitlementId || '';
+        document.getElementById('newMemoText').value = '';
+
+        renderMemoHistory(item.memos || []);
+        document.getElementById('renewalCountText').innerText = `${item.renewalCount || 0}회`;
+        
+        const historyList = document.getElementById('renewalHistoryList');
+        historyList.innerHTML = '';
+        if (item.renewalHistory && item.renewalHistory.length > 0) {
+            item.renewalHistory.forEach((h, idx) => {
+                const li = document.createElement('li');
+                li.innerText = `${idx + 1}차: ${h.date} (만료일 ${h.prevExpDate} → ${h.newExpDate})`;
+                historyList.appendChild(li);
+            });
+        } else {
+            historyList.innerHTML = '<li>갱신 이력이 없습니다.</li>';
+        }
+
+        document.getElementById('connectedEntIdText').innerText = item.entitlementId || '-';
+        const connectedContainer = document.getElementById('connectedListContainer');
+        connectedContainer.innerHTML = '';
+        const sameEntLicenses = licenses.filter(l => l.entitlementId && l.entitlementId === item.entitlementId);
+
+        sameEntLicenses.forEach(conn => {
+            const isCurrent = conn.id === item.id;
+            const status = calculateStatus(conn.expDate);
+            const dDay = getDDay(conn.expDate);
+            const card = document.createElement('div');
+            card.className = `connected-card ${isCurrent ? 'current' : ''}`;
+            card.innerHTML = `
+                <div class="connected-card-header">
+                    <span>${conn.product} ${isCurrent ? '<span style="color:var(--primary); font-size:11px;">(현재)</span>' : ''}</span>
+                    <span class="badge ${status === '종료 임박' ? 'status-expiring' : (status === '종료' ? 'status-expired' : 'status-active')}">${status}</span>
+                </div>
+                <div class="connected-card-body">
+                    <div>고객사: ${conn.accountName || '-'}</div>
+                    <div>수량: ${conn.quantity} | 기간: ${conn.startDate} ~ ${conn.expDate} ${dDay.text ? `(${dDay.text})` : ''}</div>
+                </div>
+            `;
+            connectedContainer.appendChild(card);
+        });
+
+        document.getElementById('sidebarOverlay').style.display = 'block';
+        document.getElementById('detailSidebar').classList.add('open');
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebarOverlay').style.display = 'none';
+        document.getElementById('detailSidebar').classList.remove('open');
+    }
+
+    async function saveDetailEdit() {
+        const id = parseFloat(document.getElementById('editId').value);
+        const item = licenses.find(l => l.id === id);
+        if (item) {
+            item.accountName = document.getElementById('editAccountName').value.trim();
+            item.customerName = document.getElementById('editCustomerName').value.trim();
+            item.accountNo = document.getElementById('editAccountNo').value.trim();
+            item.product = document.getElementById('editProduct').value.trim();
+            item.quantity = document.getElementById('editQuantity').value;
+            item.type = document.getElementById('editType').value.trim();
+            item.startDate = document.getElementById('editStartDate').value;
+            item.expDate = document.getElementById('editExpDate').value;
+
+            const updatedData = { ...item };
+            delete updatedData.docId;
+            await saveToFirestore(updatedData, true, item.docId);
+            closeSidebar();
+            alert('수정사항이 반영되었습니다.');
+        }
+    }
+
+    function updateSummaryCards() {
+        let total = licenses.length;
+        let expiring = 0;
+        let expired = 0;
+        licenses.forEach(item => {
+            const st = calculateStatus(item.expDate);
+            if (st === '종료 임박') expiring++;
+            else if (st === '종료') expired++;
+        });
+        document.getElementById('cardTotalCount').innerText = total;
+        document.getElementById('cardExpiringCount').innerText = expiring;
+        document.getElementById('cardExpiredCount').innerText = expired;
+    }
+
+    function renderTableAndDashboard() {
+        updateSummaryCards();
+        const tbody = document.getElementById('licenseTableBody');
+        
+        let filtered = licenses.filter(item => {
+            const temp = isTempLicense(item.entitlementId, item.type, item.orderId);
+            const status = calculateStatus(item.expDate);
+            if (currentCategoryFilter === 'EVAL') return temp;
+            if (currentCategoryFilter === 'PAID') return !temp;
+            if (currentCategoryFilter === 'EXPIRING') return status === '종료 임박';
+            return true;
+        });
+
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        if (query) {
+            filtered = filtered.filter(item => 
+                (item.accountName && item.accountName.toLowerCase().includes(query)) ||
+                (item.customerName && item.customerName.toLowerCase().includes(query)) ||
+                (item.accountNo && item.accountNo.toLowerCase().includes(query)) ||
+                (item.product && item.product.toLowerCase().includes(query)) ||
+                (item.orderId && item.orderId.toLowerCase().includes(query)) ||
+                (item.entitlementId && item.entitlementId.toLowerCase().includes(query))
+            );
+        }
+
+        Object.keys(columnFilters).forEach(colKey => {
+            const filterSet = columnFilters[colKey];
+            if (filterSet !== null) {
+                filtered = filtered.filter(item => filterSet.has(getColumnValue(item, colKey)));
+            }
+        });
+
+        if (currentSort.col) {
+            const colKey = currentSort.col;
+            const dirMult = currentSort.dir === 'asc' ? 1 : -1;
+            filtered.sort((a, b) => {
+                let valA = getColumnValue(a, colKey);
+                let valB = getColumnValue(b, colKey);
+                if (colKey === 'quantity') return (parseInt(valA) - parseInt(valB)) * dirMult;
+                return valA.localeCompare(valB, 'ko-KR', { numeric: true }) * dirMult;
+            });
+        }
+
+        document.getElementById('totalCount').innerText = filtered.length;
+        tbody.innerHTML = '';
+
+        filtered.forEach(item => {
+            const tr = document.createElement('tr');
+            const isTemp = isTempLicense(item.entitlementId, item.type, item.orderId);
+            const statusText = calculateStatus(item.expDate);
+            const dDayInfo = getDDay(item.expDate);
+            
+            let statusBadgeClass = 'status-active';
+            if (statusText === '종료 임박') statusBadgeClass = 'status-expiring';
+            else if (statusText === '종료') statusBadgeClass = 'status-expired';
+
+            let dDayClass = 'badge-dday';
+            if (dDayInfo.days !== null && dDayInfo.days <= 90 && dDayInfo.days >= 0) dDayClass += ' active';
+
+            const badgeClass = isTemp ? 'badge-eval' : 'badge-paid';
+            const renewBadge = item.isRenewed ? `<span class="badge badge-renewed">갱신 ${item.renewalCount || 1}회</span>` : '';
+            const customerTag = item.customerName ? `<span class="customer-name">${item.customerName}</span>` : '';
+            const dDayBadge = dDayInfo.text ? `<span class="${dDayClass}">${dDayInfo.text}</span>` : '';
+
+            tr.innerHTML = `
+                <td>
+                    <strong>${item.accountName || '-'}</strong>
+                    ${customerTag}
+                    <span class="account-tag">(Acc No: ${item.accountNo || '-'})</span>
+                </td>
+                <td class="product-cell">
+                    <strong>${item.product}</strong>
+                    <button class="btn-detail" onclick="openDetailSidebar(${item.id})">상세</button>
+                </td>
+                <td class="text-center"><strong>${item.quantity}</strong></td>
+                <td class="text-center"><span class="badge ${badgeClass}">${item.type}</span></td>
+                <td class="text-center">${item.startDate}</td>
+                <td class="text-center">${item.expDate} ${dDayBadge} ${renewBadge}</td>
+                <td class="text-center"><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterLicenses() { renderTableAndDashboard(); }
+
+    function exportToXLSX() {
+        if (licenses.length === 0) { alert('내보낼 데이터가 없습니다.'); return; }
+        const excelData = licenses.map(item => {
+            const statusText = calculateStatus(item.expDate);
+            const isTemp = isTempLicense(item.entitlementId, item.type, item.orderId);
+            const dDayInfo = getDDay(item.expDate);
+            let lastMemoText = '';
+            if (item.memos && item.memos.length > 0) {
+                const lastMemo = item.memos[item.memos.length - 1];
+                lastMemoText = `[${lastMemo.timestamp}] ${lastMemo.text}`;
+            }
+            return {
+                "상태": statusText, "D-Day": dDayInfo.text || '', "구분": isTemp ? "임시" : "구매",
+                "Account Name": item.accountName || '', "고객 이름": item.customerName || '',
+                "Account Number": item.accountNo || '', "Product": item.product || '',
+                "Count": item.quantity || 1, "Type": item.type || '',
+                "Start Date": item.startDate || '', "Expiration Date": item.expDate || '',
+                "Order ID": item.orderId || '', "Entitlement ID": item.entitlementId || '',
+                "갱신횟수": `${item.renewalCount || 0}회`, "최근메모": lastMemoText
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "라이선스목록");
+        XLSX.writeFile(workbook, `Ansys_Entitlement_List_${new Date().toISOString().substring(0, 10)}.xlsx`);
+    }
+</script>
+
+</body>
+</html>
