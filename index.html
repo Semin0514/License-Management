@@ -265,7 +265,7 @@
 </head>
 <body>
 
-<!-- 팀원 전용 비밀번호 보안 스크립트 (요청 사항 1: moa3203!) -->
+<!-- 팀원 전용 비밀번호 보안 스크립트 (비밀번호: moa3203!) -->
 <script>
     const teamPassword = prompt("팀원 전용 보안 비밀번호를 입력하세요:");
     if (teamPassword !== moa3203!) {
@@ -297,7 +297,7 @@
         </div>
         <div class="summary-card warning">
             <div>
-                <div class="card-title">종료 임박 (3개월 이내)</div>
+                <div class="card-title">종료 임박 (Evaluation: 2주 / 기타: 3개월)</div>
                 <div class="card-value" id="cardExpiringCount">0</div>
             </div>
         </div>
@@ -503,7 +503,7 @@
             <div class="dashboard-card" style="grid-column: span 12;">
                 <h3>
                     Account Name별 보유 라이선스 수량 (Top 10)
-                    <span class="hint">MOASOFT 제외 | 막대를 클릭하면 해당 고객사의 상세 라이선스 목록을 볼 수 있습니다.</span>
+                    <span class="hint">MOASOFT 및 Evaluation 제외 | 막대를 클릭하면 해당 고객사의 상세 라이선스 목록을 볼 수 있습니다.</span>
                 </h3>
                 <div class="chart-container">
                     <canvas id="chartAccount"></canvas>
@@ -513,7 +513,7 @@
             <div class="dashboard-card" style="grid-column: span 7;">
                 <h3>
                     제품(Product)별 보유 현황 (Top 10)
-                    <span class="hint">MOASOFT 및 Channel Partner Bundle 제외 | 막대를 클릭하여 상세 조회</span>
+                    <span class="hint">MOASOFT, Evaluation 및 Channel Partner Bundle 제외 | 막대를 클릭하여 상세 조회</span>
                 </h3>
                 <div class="chart-container">
                     <canvas id="chartProduct"></canvas>
@@ -523,7 +523,7 @@
             <div class="dashboard-card" style="grid-column: span 5;">
                 <h3>
                     라이선스 유형(Type) 비중
-                    <span class="hint">MOASOFT 제외 | 항목을 클릭하여 상세 조회</span>
+                    <span class="hint">MOASOFT 및 Evaluation 제외 | 항목을 클릭하여 상세 조회</span>
                 </h3>
                 <div class="chart-container" style="display: flex; justify-content: center; align-items: center;">
                     <canvas id="chartType"></canvas>
@@ -841,7 +841,8 @@
         return { text: '', days: diffDays };
     }
 
-    function calculateStatus(expDateStr) {
+    // Evaluation인 경우에만 2주(14일), 그 외에는 3개월(90일) 기준으로 종료 임박 판정
+    function calculateStatus(expDateStr, type) {
         if (!expDateStr || expDateStr === '-') return '유지';
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -849,9 +850,14 @@
         if (isNaN(expDate.getTime())) return '유지';
 
         if (expDate < today) return '종료';
-        const threeMonthsLater = new Date(today);
-        threeMonthsLater.setDate(today.getDate() + 90);
-        if (expDate <= threeMonthsLater) return '종료 임박';
+        
+        const isEval = (type || '').trim().toUpperCase() === 'EVALUATION';
+        const daysLimit = isEval ? 14 : 90;
+
+        const limitDate = new Date(today);
+        limitDate.setDate(today.getDate() + daysLimit);
+
+        if (expDate <= limitDate) return '종료 임박';
         return '유지';
     }
 
@@ -860,7 +866,7 @@
             return `${item.accountName || '-'} (Acc No: ${item.accountNo || '-'})`;
         }
         if (colKey === 'quantity') return String(item.quantity || '1');
-        if (colKey === 'status') return calculateStatus(item.expDate);
+        if (colKey === 'status') return calculateStatus(item.expDate, item.type);
         return String(item[colKey] || '-');
     }
 
@@ -926,7 +932,6 @@
         renderTableAndDashboard();
     }
 
-    /* 전체 선택 및 일괄 삭제 기능 */
     function toggleSelectAll(source) {
         const checkboxes = document.querySelectorAll('.row-checkbox');
         checkboxes.forEach(chk => chk.checked = source.checked);
@@ -966,7 +971,12 @@
         const tbody = document.getElementById('chartDetailTableBody');
 
         titleEl.innerText = `[${filterCategory}] ${filterValue} 상세 내역`;
-        const dashboardLicenses = licenses.filter(l => (l.accountName || '').trim().toUpperCase() !== 'MOASOFT');
+        
+        const dashboardLicenses = licenses.filter(l => {
+            const accName = (l.accountName || '').trim().toUpperCase();
+            const typeVal = (l.type || '').trim().toUpperCase();
+            return accName !== 'MOASOFT' && typeVal !== 'EVALUATION';
+        });
 
         let filteredItems = [];
         if (filterCategory === '고객사') {
@@ -984,7 +994,7 @@
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">해당 조건의 데이터가 없습니다.</td></tr>';
         } else {
             filteredItems.forEach(item => {
-                const statusText = calculateStatus(item.expDate);
+                const statusText = calculateStatus(item.expDate, item.type);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="padding: 10px 12px;"><strong>${item.accountName || '-'}</strong> ${item.customerName ? `(${item.customerName})` : ''}</td>
@@ -1006,11 +1016,12 @@
 
     function renderDashboardCharts() {
         const isMoasoft = (name) => (name || '').trim().toUpperCase() === 'MOASOFT';
+        const isEvaluation = (type) => (type || '').trim().toUpperCase() === 'EVALUATION';
 
         const accountMap = {};
         licenses.forEach(item => {
             const name = item.accountName ? item.accountName.trim() : '미지정';
-            if (isMoasoft(name)) return;
+            if (isMoasoft(name) || isEvaluation(item.type)) return;
             const qty = parseInt(item.quantity || 1, 10);
             accountMap[name] = (accountMap[name] || 0) + qty;
         });
@@ -1021,7 +1032,7 @@
         const productMap = {};
         licenses.forEach(item => {
             const accName = item.accountName ? item.accountName.trim() : '';
-            if (isMoasoft(accName)) return;
+            if (isMoasoft(accName) || isEvaluation(item.type)) return;
             const prod = item.product ? item.product.trim() : '기타 제품';
             if (prod.toUpperCase().includes('CHANNEL PARTNER BUNDLE')) return;
             const qty = parseInt(item.quantity || 1, 10);
@@ -1034,7 +1045,7 @@
         const typeMap = {};
         licenses.forEach(item => {
             const accName = item.accountName ? item.accountName.trim() : '';
-            if (isMoasoft(accName)) return;
+            if (isMoasoft(accName) || isEvaluation(item.type)) return;
             const t = item.type ? item.type.trim() : 'Unassigned';
             const qty = parseInt(item.quantity || 1, 10);
             typeMap[t] = (typeMap[t] || 0) + qty;
@@ -1452,7 +1463,7 @@
 
         sameEntLicenses.forEach(conn => {
             const isCurrent = conn.id === item.id;
-            const status = calculateStatus(conn.expDate);
+            const status = calculateStatus(conn.expDate, conn.type);
             const dDay = getDDay(conn.expDate);
             const card = document.createElement('div');
             card.className = `connected-card ${isCurrent ? 'current' : ''}`;
@@ -1504,7 +1515,7 @@
         let expiring = 0;
         let expired = 0;
         licenses.forEach(item => {
-            const st = calculateStatus(item.expDate);
+            const st = calculateStatus(item.expDate, item.type);
             if (st === '종료 임박') expiring++;
             else if (st === '종료') expired++;
         });
@@ -1519,7 +1530,7 @@
         
         let filtered = licenses.filter(item => {
             const temp = isTempLicense(item.entitlementId, item.type, item.orderId);
-            const status = calculateStatus(item.expDate);
+            const status = calculateStatus(item.expDate, item.type);
             if (currentCategoryFilter === 'EVAL') return temp;
             if (currentCategoryFilter === 'PAID') return !temp;
             if (currentCategoryFilter === 'EXPIRING') return status === '종료 임박';
@@ -1545,11 +1556,11 @@
             }
         });
 
-        // 요청 사항 3: Expiration Date 기준으로 내림차순 고정 (필터 및 검색 결과 내에서도 유지)
+        // Expiration Date 기준으로 내림차순 고정 정렬
         filtered.sort((a, b) => {
             const dateA = a.expDate && a.expDate !== '-' ? new Date(a.expDate).getTime() : 0;
             const dateB = b.expDate && b.expDate !== '-' ? new Date(b.expDate).getTime() : 0;
-            return dateB - dateA; // 내림차순 (최신/먼 미래 날짜가 위로)
+            return dateB - dateA;
         });
 
         document.getElementById('totalCount').innerText = filtered.length;
@@ -1558,7 +1569,7 @@
         filtered.forEach(item => {
             const tr = document.createElement('tr');
             const isTemp = isTempLicense(item.entitlementId, item.type, item.orderId);
-            const statusText = calculateStatus(item.expDate);
+            const statusText = calculateStatus(item.expDate, item.type);
             const dDayInfo = getDDay(item.expDate);
             
             let statusBadgeClass = 'status-active';
@@ -1566,7 +1577,9 @@
             else if (statusText === '종료') statusBadgeClass = 'status-expired';
 
             let dDayClass = 'badge-dday';
-            if (dDayInfo.days !== null && dDayInfo.days <= 90 && dDayInfo.days >= 0) dDayClass += ' active';
+            const isEval = (item.type || '').trim().toUpperCase() === 'EVALUATION';
+            const activeThreshold = isEval ? 14 : 90;
+            if (dDayInfo.days !== null && dDayInfo.days <= activeThreshold && dDayInfo.days >= 0) dDayClass += ' active';
 
             const badgeClass = isTemp ? 'badge-eval' : 'badge-paid';
             const renewBadge = item.isRenewed ? `<span class="badge badge-renewed">갱신 ${item.renewalCount || 1}회</span>` : '';
@@ -1601,7 +1614,7 @@
     function exportToXLSX() {
         if (licenses.length === 0) { alert('내보낼 데이터가 없습니다.'); return; }
         const excelData = licenses.map(item => {
-            const statusText = calculateStatus(item.expDate);
+            const statusText = calculateStatus(item.expDate, item.type);
             const isTemp = isTempLicense(item.entitlementId, item.type, item.orderId);
             const dDayInfo = getDDay(item.expDate);
             let lastMemoText = '';
