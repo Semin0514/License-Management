@@ -145,6 +145,7 @@
 
         .account-tag { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }
         .customer-name { font-size: 12px; color: var(--text-main); font-weight: 700; display: block; margin-top: 2px; text-decoration: underline; text-underline-offset: 3px; }
+        .manager-tag { font-size: 11px; color: var(--primary); font-weight: 600; display: block; margin-top: 2px; }
 
         .product-cell { position: relative; padding-right: 55px !important; }
         .btn-detail { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 4px 8px; font-size: 11px; background-color: var(--primary); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; }
@@ -248,7 +249,7 @@
         .connected-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--text-main); }
         .connected-card-body { color: var(--text-muted); font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
 
-        /* 메모 타임라인 */
+        /* 메모 타임라인 및 감사 로그 */
         .memo-container { display: flex; flex-direction: column; height: 100%; min-height: 380px; justify-content: space-between; gap: 14px; }
         .memo-history-list { flex: 1; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
         .memo-item { background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 12px; position: relative; }
@@ -320,7 +321,7 @@
                 <button class="tab-btn" id="tab-expiring" onclick="setCategoryFilter('EXPIRING', this)">종료 임박건</button>
             </div>
         </div>
-        <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 제품명, ID 등)...">
+        <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 담당자, 제품명, ID 등)...">
     </div>
 
     <!-- 데이터 테이블 -->
@@ -415,6 +416,28 @@
                             <div class="filter-actions">
                                 <button style="background:#e2e8f0;" onclick="resetColumnFilter('type')">초기화</button>
                                 <button class="btn-primary" onclick="applyColumnFilter('type')">적용</button>
+                            </div>
+                        </div>
+                    </th>
+
+                    <th>
+                        <div class="th-box">
+                            <span>Internal Manager (담당 영업/엔지니어)</span>
+                            <button class="btn-col-filter" id="btn-filter-manager" onclick="toggleFilterMenu('manager', event)" title="필터">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M1.5 2.5H14.5L9.5 8.5V13.5L6.5 14.5V8.5L1.5 2.5Z" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="filter-dropdown" id="filter-menu-manager">
+                            <input type="text" class="filter-search" placeholder="항목 검색..." onkeyup="searchFilterOptions('manager', this.value)">
+                            <div class="option-list">
+                                <label class="option-item"><input type="checkbox" id="chk-all-manager" onchange="toggleSelectAllOptions('manager', this.checked)" checked> (전체 선택)</label>
+                                <div id="options-manager"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button style="background:#e2e8f0;" onclick="resetColumnFilter('manager')">초기화</button>
+                                <button class="btn-primary" onclick="applyColumnFilter('manager')">적용</button>
                             </div>
                         </div>
                     </th>
@@ -590,6 +613,17 @@
             </div>
         </div>
 
+        <div style="display: flex; gap: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+            <div class="input-group" style="flex: 1;">
+                <label>전담 영업 사원 (Sales)</label>
+                <input type="text" id="salesManager" placeholder="예: 김영업 매니저">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>기술 지원 엔지니어 (SE)</label>
+                <input type="text" id="seManager" placeholder="예: 이엔지 엔지니어">
+            </div>
+        </div>
+
         <div class="form-grid">
             <div class="input-group" style="grid-column: span 2;">
                 <label>Product (제품명)</label>
@@ -633,6 +667,13 @@
     <div class="modal-content">
         <h2>Ansys 이메일 원문 붙여넣기</h2>
         <p>수신받으신 이메일 내용 전체를 복사하여 아래 상자에 붙여넣고 [자동 분석 및 등록]을 눌러주세요.</p>
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label>기본 전담 담당자 지정 (선택)</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="emailSalesManager" placeholder="영업 담당자" style="flex:1;">
+                <input type="text" id="emailSeManager" placeholder="엔지니어(SE) 담당자" style="flex:1;">
+            </div>
+        </div>
         <textarea id="emailText" placeholder="여기에 이메일 내용을 전체 복사하여 붙여넣으세요..."></textarea>
         <div class="btn-group" style="display: flex; justify-content: flex-end; gap: 8px;">
             <button class="btn-manual" onclick="closeEmailModal()">취소</button>
@@ -673,6 +714,7 @@
         <div class="sidebar-nav-tabs">
             <button class="sidebar-nav-tab active" id="btn-tab-info" onclick="switchSidebarTab('info')">상세 정보</button>
             <button class="sidebar-nav-tab" id="btn-tab-memo" onclick="switchSidebarTab('memo')">메모</button>
+            <button class="sidebar-nav-tab" id="btn-tab-audit" onclick="switchSidebarTab('audit')">변경 이력(Audit)</button>
             <button class="sidebar-nav-tab" id="btn-tab-connected" onclick="switchSidebarTab('connected')">
                 연결된 정보<span class="help-icon" title="동일한 Entitlement ID를 가진 라이선스 목록입니다.">?</span>
             </button>
@@ -694,6 +736,16 @@
             <div class="input-group">
                 <label>Account Number</label>
                 <input type="text" id="editAccountNo">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="input-group" style="flex:1;">
+                    <label>영업 담당자 (Sales)</label>
+                    <input type="text" id="editSalesManager">
+                </div>
+                <div class="input-group" style="flex:1;">
+                    <label>엔지니어 (SE)</label>
+                    <input type="text" id="editSeManager">
+                </div>
             </div>
             <div class="input-group">
                 <label>Product (제품명)</label>
@@ -740,6 +792,16 @@
             </div>
         </div>
 
+        <!-- 변경 이력(Audit Trail) 탭 -->
+        <div class="sidebar-tab-content" id="tabContentAudit">
+            <div class="memo-container">
+                <div class="memo-history-list" id="auditHistoryList"></div>
+                <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px 0;">
+                    시스템이 자동으로 기록한 변경/수정/등록 이력입니다.
+                </div>
+            </div>
+        </div>
+
         <div class="sidebar-tab-content" id="tabContentConnected">
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
                 현재 등록된 Entitlement ID (<strong id="connectedEntIdText">-</strong>) 와 동일한 라이선스 내역입니다.
@@ -780,6 +842,7 @@
         product: null,
         quantity: null,
         type: null,
+        manager: null,
         startDate: null,
         expDate: null,
         status: null
@@ -788,6 +851,9 @@
     let accountChartInstance = null;
     let productChartInstance = null;
     let typeChartInstance = null;
+
+    // 현재 접속한 관리자 식별용 타임스탬프 기반 명칭 또는 세션 기본값
+    const currentAdminName = "팀원(moa3203!)";
 
     // Firebase Firestore 실시간 감지
     db.collection("licenses").onSnapshot((snapshot) => {
@@ -864,6 +930,11 @@
         if (colKey === 'accountInfo') {
             return `${item.accountName || '-'} (Acc No: ${item.accountNo || '-'})`;
         }
+        if (colKey === 'manager') {
+            const sales = item.salesManager || '미지정';
+            const se = item.seManager || '미지정';
+            return `Sales: ${sales} / SE: ${se}`;
+        }
         if (colKey === 'quantity') return String(item.quantity || '1');
         if (colKey === 'status') return calculateStatus(item.expDate, item.type);
         return String(item[colKey] || '-');
@@ -934,6 +1005,18 @@
     function toggleSelectAll(source) {
         const checkboxes = document.querySelectorAll('.row-checkbox');
         checkboxes.forEach(chk => chk.checked = source.checked);
+    }
+
+    // 감사 로그 기록 생성 헬퍼 함수
+    function createAuditLog(action, details) {
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        return {
+            timestamp,
+            user: currentAdminName,
+            action,
+            details
+        };
     }
 
     async function deleteSelectedLicenses() {
@@ -1127,7 +1210,7 @@
         const clientName = item.accountName || '고객사';
 
         const subject = `[모아소프트] Ansys 라이선스 만료 및 갱신 안내 (${clientName})`;
-        const body = `안녕하세요, ${clientName} ${customerName}고객님.\n(주)모아소프트 영업부입니다.\n\n항상 저희 모아소프트를 이용해 주셔서 진심으로 감사드립니다.\n\n고객님께서 사용 중이신 Ansys 라이선스의 만료일이 다가옴에 따라 갱신 안내를 드립니다.\n\n■ 라이선스 상세 정보\n- 고객사명: ${clientName}\n- 담당자명: ${item.customerName || '담당자 미지정'} (Acc No: ${item.accountNo || '-'})\n- 제품명: ${item.product || '-'}\n- 수량: ${item.quantity || 1} EA\n- 계약 구분: ${item.type || '-'}\n- 만료 예정일: ${item.expDate || '-'}${dDayStr}\n- Entitlement ID: ${item.entitlementId || '-'}\n\n만료일 이후에는 라이선스 사용에 제한이 생길 수 있으니, 원활한 서비스 이용을 위해 사전 갱신을 권장해 드립니다.\n\n감사합니다.\n\n------------------------------------------------\n(주)모아소프트 영업부\nAnsys License Support Team\n`;
+        const body = `안녕하세요, ${clientName} ${customerName}고객님.\n(주)모아소프트 영업부입니다.\n\n항상 저희 모아소프트를 이용해 주셔서 진심으로 감사드립니다.\n\n고객님께서 사용 중이신 Ansys 라이선스의 만료일이 다가옴에 따라 갱신 안내를 드립니다.\n\n■ 라이선스 상세 정보\n- 고객사명: ${clientName}\n- 담당자명: ${item.customerName || '담당자 미지정'} (Acc No: ${item.accountNo || '-'})\n- 담당 영업/엔지니어: Sales (${item.salesManager || '-'}) / SE (${item.seManager || '-'})\n- 제품명: ${item.product || '-'}\n- 수량: ${item.quantity || 1} EA\n- 계약 구분: ${item.type || '-'}\n- 만료 예정일: ${item.expDate || '-'}${dDayStr}\n- Entitlement ID: ${item.entitlementId || '-'}\n\n만료일 이후에는 라이선스 사용에 제한이 생길 수 있으니, 원활한 서비스 이용을 위해 사전 갱신을 권장해 드립니다.\n\n감사합니다.\n\n------------------------------------------------\n(주)모아소프트 영업부\nAnsys License Support Team\n`;
 
         document.getElementById('templateSubject').value = subject;
         document.getElementById('templateBody').value = body;
@@ -1167,12 +1250,13 @@
         const rawText = document.getElementById('emailText').value;
         if (!rawText.trim()) { alert('이메일 내용을 입력해주세요.'); return; }
 
-        // 고객사 번호 및 이름 패턴 존재 여부 검증
+        const defaultSales = document.getElementById('emailSalesManager').value.trim() || '미지정';
+        const defaultSe = document.getElementById('emailSeManager').value.trim() || '미지정';
+
         const customerMatch = rawText.match(/customer\s+(\d+)\s*\(([^)]+)\)/i);
         const entitlementRegex = /(Ent-[A-Za-z0-9-]+)(.*?)(?=(?:Ent-|$))/gs;
         const matches = [...rawText.matchAll(entitlementRegex)];
 
-        // 이메일 원문 형식이 맞지 않는 경우 요청하신 알림 출력
         if (!customerMatch || matches.length === 0) {
             alert('등록 형식이 다릅니다. 다시 시도해 주세요.');
             return;
@@ -1247,12 +1331,16 @@
                     const renewalHistory = existingItem.renewalHistory || [];
                     renewalHistory.push({ date: currentDate, prevExpDate: existingItem.expDate, newExpDate: expDate });
 
+                    const auditLogs = existingItem.auditLogs || [];
+                    auditLogs.push(createAuditLog("자동 갱신(이메일 분석)", `만료일 변경: ${existingItem.expDate} → ${expDate}`));
+
                     const updatedData = {
                         ...existingItem,
                         expDate: expDate,
                         isRenewed: true,
                         renewalCount: (existingItem.renewalCount || 0) + 1,
-                        renewalHistory: renewalHistory
+                        renewalHistory: renewalHistory,
+                        auditLogs: auditLogs
                     };
                     delete updatedData.docId;
                     await saveToFirestore(updatedData, true, existingItem.docId);
@@ -1261,11 +1349,14 @@
                     duplicateCount++;
                 }
             } else {
+                const auditLogs = [createAuditLog("자동 등록(이메일 분석)", `신규 라이선스 등록 (Ent ID: ${rawEntId})`)];
                 const newEntry = {
                     id: Date.now() + Math.random(),
                     accountName,
                     customerName: '',
                     accountNo,
+                    salesManager: defaultSales,
+                    seManager: defaultSe,
                     product: product || 'Ansys Product',
                     quantity: count,
                     type: type || 'Evaluation',
@@ -1276,7 +1367,8 @@
                     isRenewed: false,
                     renewalCount: 0,
                     renewalHistory: [],
-                    memos: []
+                    memos: [],
+                    auditLogs: auditLogs
                 };
                 await saveToFirestore(newEntry, false);
                 addedCount++;
@@ -1295,6 +1387,8 @@
         const accountName = document.getElementById('clientName').value.trim();
         const customerName = document.getElementById('customerName').value.trim();
         const accountNo = document.getElementById('accountNo').value.trim();
+        const salesManager = document.getElementById('salesManager').value.trim() || '미지정';
+        const seManager = document.getElementById('seManager').value.trim() || '미지정';
         const entitlementId = document.getElementById('entitlementId').value.trim();
         const product = document.getElementById('productName').value.trim();
         const quantity = document.getElementById('quantity').value;
@@ -1317,12 +1411,18 @@
                 const renewalHistory = existingItem.renewalHistory || [];
                 renewalHistory.push({ date: currentDate, prevExpDate: existingItem.expDate, newExpDate: expDate });
 
+                const auditLogs = existingItem.auditLogs || [];
+                auditLogs.push(createAuditLog("수동 갱신", `만료일 변경: ${existingItem.expDate} → ${expDate}`));
+
                 const updatedData = {
                     ...existingItem,
+                    salesManager: salesManager !== '미지정' ? salesManager : existingItem.salesManager,
+                    seManager: seManager !== '미지정' ? seManager : existingItem.seManager,
                     expDate: expDate,
                     isRenewed: true,
                     renewalCount: (existingItem.renewalCount || 0) + 1,
-                    renewalHistory: renewalHistory
+                    renewalHistory: renewalHistory,
+                    auditLogs: auditLogs
                 };
                 delete updatedData.docId;
                 await saveToFirestore(updatedData, true, existingItem.docId);
@@ -1333,10 +1433,11 @@
                 return;
             }
         } else {
+            const auditLogs = [createAuditLog("수동 등록", `신규 라이선스 등록 (Ent ID: ${entitlementId})`)];
             const newEntry = {
                 id: Date.now(),
-                accountName, customerName, accountNo, product, quantity, type, startDate, expDate, orderId, entitlementId,
-                isRenewed: false, renewalCount: 0, renewalHistory: [], memos: []
+                accountName, customerName, accountNo, salesManager, seManager, product, quantity, type, startDate, expDate, orderId, entitlementId,
+                isRenewed: false, renewalCount: 0, renewalHistory: [], memos: [], auditLogs: auditLogs
             };
             await saveToFirestore(newEntry, false);
             alert('신규 라이선스가 등록되었습니다.');
@@ -1360,6 +1461,8 @@
         document.getElementById('clientName').value = '';
         document.getElementById('customerName').value = '';
         document.getElementById('accountNo').value = '';
+        document.getElementById('salesManager').value = '';
+        document.getElementById('seManager').value = '';
         document.getElementById('entitlementId').value = '';
         document.getElementById('productName').value = '';
         document.getElementById('quantity').value = '1';
@@ -1398,6 +1501,28 @@
         container.scrollTop = container.scrollHeight;
     }
 
+    function renderAuditTrail(auditLogs) {
+        const container = document.getElementById('auditHistoryList');
+        container.innerHTML = '';
+        if (!auditLogs || auditLogs.length === 0) {
+            container.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:30px 0;">기록된 변경 이력이 없습니다.</div>';
+            return;
+        }
+        auditLogs.forEach((log) => {
+            const item = document.createElement('div');
+            item.className = 'memo-item';
+            item.innerHTML = `
+                <div class="memo-item-header">
+                    <span class="memo-time">[${log.user}] ${log.timestamp}</span>
+                    <strong style="font-size:11px; color:var(--primary);">${log.action}</strong>
+                </div>
+                <div class="memo-text">${escapeHtml(log.details)}</div>
+            `;
+            container.appendChild(item);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
     async function addMemoItem() {
         const id = parseFloat(document.getElementById('editId').value);
         const textInput = document.getElementById('newMemoText');
@@ -1411,11 +1536,15 @@
             const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             memos.push({ timestamp, text });
 
-            const updatedData = { ...item, memos };
+            const auditLogs = item.auditLogs || [];
+            auditLogs.push(createAuditLog("메모 추가", text.length > 20 ? text.substring(0, 20) + '...' : text));
+
+            const updatedData = { ...item, memos, auditLogs };
             delete updatedData.docId;
             await saveToFirestore(updatedData, true, item.docId);
             textInput.value = '';
             renderMemoHistory(memos);
+            renderAuditTrail(auditLogs);
         }
     }
 
@@ -1424,11 +1553,17 @@
         const item = licenses.find(l => l.id === id);
         if (item && item.memos) {
             if (confirm('해당 메모를 삭제하시겠습니까?')) {
+                const deletedText = item.memos[memoIndex].text;
                 item.memos.splice(memoIndex, 1);
-                const updatedData = { ...item };
+
+                const auditLogs = item.auditLogs || [];
+                auditLogs.push(createAuditLog("메모 삭제", deletedText.length > 20 ? deletedText.substring(0, 20) + '...' : deletedText));
+
+                const updatedData = { ...item, auditLogs };
                 delete updatedData.docId;
                 await saveToFirestore(updatedData, true, item.docId);
                 renderMemoHistory(item.memos);
+                renderAuditTrail(auditLogs);
             }
         }
     }
@@ -1442,6 +1577,8 @@
         document.getElementById('editAccountName').value = item.accountName || '';
         document.getElementById('editCustomerName').value = item.customerName || '';
         document.getElementById('editAccountNo').value = item.accountNo || '';
+        document.getElementById('editSalesManager').value = item.salesManager || '';
+        document.getElementById('editSeManager').value = item.seManager || '';
         document.getElementById('editProduct').value = item.product || '';
         document.getElementById('editQuantity').value = item.quantity || 1;
         document.getElementById('editType').value = item.type || '';
@@ -1452,6 +1589,7 @@
         document.getElementById('newMemoText').value = '';
 
         renderMemoHistory(item.memos || []);
+        renderAuditTrail(item.auditLogs || []);
         document.getElementById('renewalCountText').innerText = `${item.renewalCount || 0}회`;
         
         const historyList = document.getElementById('renewalHistoryList');
@@ -1483,7 +1621,7 @@
                     <span class="badge ${status === '종료 임박' ? 'status-expiring' : (status === '종료' ? 'status-expired' : 'status-active')}">${status}</span>
                 </div>
                 <div class="connected-card-body">
-                    <div>고객사: ${conn.accountName || '-'}</div>
+                    <div>고객사: ${conn.accountName || '-'} | 담당: Sales(${conn.salesManager || '-'}), SE(${conn.seManager || '-'})</div>
                     <div>수량: ${conn.quantity} | 기간: ${conn.startDate} ~ ${conn.expDate} ${dDay.text ? `(${dDay.text})` : ''}</div>
                 </div>
             `;
@@ -1506,13 +1644,18 @@
             item.accountName = document.getElementById('editAccountName').value.trim();
             item.customerName = document.getElementById('editCustomerName').value.trim();
             item.accountNo = document.getElementById('editAccountNo').value.trim();
+            item.salesManager = document.getElementById('editSalesManager').value.trim();
+            item.seManager = document.getElementById('editSeManager').value.trim();
             item.product = document.getElementById('editProduct').value.trim();
             item.quantity = document.getElementById('editQuantity').value;
             item.type = document.getElementById('editType').value.trim();
             item.startDate = document.getElementById('editStartDate').value;
             item.expDate = document.getElementById('editExpDate').value;
 
-            const updatedData = { ...item };
+            const auditLogs = item.auditLogs || [];
+            auditLogs.push(createAuditLog("정보 수정", "사이드바를 통해 상세 정보가 수동 수정되었습니다."));
+
+            const updatedData = { ...item, auditLogs };
             delete updatedData.docId;
             await saveToFirestore(updatedData, true, item.docId);
             closeSidebar();
@@ -1553,6 +1696,8 @@
                 (item.accountName && item.accountName.toLowerCase().includes(query)) ||
                 (item.customerName && item.customerName.toLowerCase().includes(query)) ||
                 (item.accountNo && item.accountNo.toLowerCase().includes(query)) ||
+                (item.salesManager && item.salesManager.toLowerCase().includes(query)) ||
+                (item.seManager && item.seManager.toLowerCase().includes(query)) ||
                 (item.product && item.product.toLowerCase().includes(query)) ||
                 (item.orderId && item.orderId.toLowerCase().includes(query)) ||
                 (item.entitlementId && item.entitlementId.toLowerCase().includes(query))
@@ -1594,6 +1739,7 @@
             const badgeClass = isTemp ? 'badge-eval' : 'badge-paid';
             const renewBadge = item.isRenewed ? `<span class="badge badge-renewed">갱신 ${item.renewalCount || 1}회</span>` : '';
             const customerTag = item.customerName ? `<span class="customer-name">${item.customerName}</span>` : '';
+            const managerTag = `<span class="manager-tag">Sales: ${item.salesManager || '-'} | SE: ${item.seManager || '-'}</span>`;
             const dDayBadge = dDayInfo.text ? `<span class="${dDayClass}">${dDayInfo.text}</span>` : '';
 
             tr.innerHTML = `
@@ -1611,6 +1757,7 @@
                 </td>
                 <td class="text-center"><strong>${item.quantity}</strong></td>
                 <td class="text-center"><span class="badge ${badgeClass}">${item.type}</span></td>
+                <td class="text-center">${managerTag}</td>
                 <td class="text-center">${item.startDate}</td>
                 <td class="text-center">${item.expDate} ${dDayBadge} ${renewBadge}</td>
                 <td class="text-center"><span class="badge ${statusBadgeClass}">${statusText}</span></td>
@@ -1635,7 +1782,8 @@
             return {
                 "상태": statusText, "D-Day": dDayInfo.text || '', "구분": isTemp ? "임시" : "구매",
                 "Account Name": item.accountName || '', "고객 이름": item.customerName || '',
-                "Account Number": item.accountNo || '', "Product": item.product || '',
+                "Account Number": item.accountNo || '', "영업 담당자": item.salesManager || '',
+                "엔지니어 담당자": item.seManager || '', "Product": item.product || '',
                 "Count": item.quantity || 1, "Type": item.type || '',
                 "Start Date": item.startDate || '', "Expiration Date": item.expDate || '',
                 "Order ID": item.orderId || '', "Entitlement ID": item.entitlementId || '',
