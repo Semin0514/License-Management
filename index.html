@@ -268,7 +268,7 @@
 <!-- 팀원 전용 비밀번호 보안 스크립트 (비밀번호: moa3203!) -->
 <script>
     const teamPassword = prompt("팀원 전용 보안 비밀번호를 입력하세요:");
-    if (teamPassword !== moa3203!) {
+    if (teamPassword !== "moa3203!") {
         alert("비밀번호가 틀렸습니다. 접근할 수 없습니다.");
         document.body.innerHTML = "<div style='text-align:center; margin-top:100px; font-family:sans-serif;'><h1>접근 권한이 없습니다.</h1><p>올바른 비밀번호를 입력해야 시스템을 사용할 수 있습니다.</p></div>";
         throw new Error("Access Denied");
@@ -1167,17 +1167,19 @@
         const rawText = document.getElementById('emailText').value;
         if (!rawText.trim()) { alert('이메일 내용을 입력해주세요.'); return; }
 
-        let accountNo = '-';
-        let accountName = '-';
+        // 고객사 번호 및 이름 패턴 존재 여부 검증
         const customerMatch = rawText.match(/customer\s+(\d+)\s*\(([^)]+)\)/i);
-        if (customerMatch) {
-            accountNo = customerMatch[1].trim();
-            accountName = customerMatch[2].trim();
-        }
-
         const entitlementRegex = /(Ent-[A-Za-z0-9-]+)(.*?)(?=(?:Ent-|$))/gs;
         const matches = [...rawText.matchAll(entitlementRegex)];
-        if (matches.length === 0) { alert('이메일 내에서 Entitlement 라이선스 항목을 찾을 수 없습니다.'); return; }
+
+        // 이메일 원문 형식이 맞지 않는 경우 요청하신 알림 출력
+        if (!customerMatch || matches.length === 0) {
+            alert('등록 형식이 다릅니다. 다시 시도해 주세요.');
+            return;
+        }
+
+        let accountNo = customerMatch[1].trim();
+        let accountName = customerMatch[2].trim();
 
         let addedCount = 0;
         let renewedCount = 0;
@@ -1326,7 +1328,6 @@
                 await saveToFirestore(updatedData, true, existingItem.docId);
                 alert('동일 Entitlement ID가 존재하여 최신 만료일로 갱신되었습니다.');
             } else {
-                // 중복 등록 또는 만료일이 더 이전/동일한 경우 요청하신 문구 출력
                 alert('이미 등록된 정보입니다.');
                 closeManualModal();
                 return;
