@@ -120,11 +120,10 @@
         .filter-actions { display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 8px; }
         .filter-actions button { padding: 4px 10px; font-size: 12px; border-radius: 4px; }
 
-        /* 글자 왼쪽 미니멀 색상 점(Dot) 디자인 스타일 */
+        /* 미니멀 색상 점(Dot) 디자인 스타일 */
         .status-dot-text { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; }
         .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
         
-        /* 상태별 색상 점 정의 */
         .dot-active { background-color: #16a34a; }
         .dot-expiring { background-color: #d97706; }
         .dot-expired { background-color: #dc2626; }
@@ -148,7 +147,7 @@
         .modal-content { background: #ffffff; padding: 28px; border-radius: 12px; width: 90%; max-width: 700px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); }
         .modal-content h2 { margin-bottom: 8px; font-size: 18px; color: var(--text-main); font-weight: 800; }
         .modal-content p { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
-        .modal-content textarea { width: 100%; height: 240px; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; font-family: monospace; outline: none; margin-bottom: 16px; resize: vertical; }
+        .modal-content textarea { width: 100%; height: 200px; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; font-family: monospace; outline: none; margin-bottom: 16px; resize: vertical; }
 
         /* 대시보드 모달 확장 */
         .dashboard-modal-content {
@@ -310,7 +309,7 @@
         <input type="text" class="search-box" id="searchInput" onkeyup="filterLicenses()" placeholder="검색 (고객사, 제품명, ID 등)...">
     </div>
 
-    <!-- 데이터 테이블 (담당자 컬럼 제거됨) -->
+    <!-- 데이터 테이블 -->
     <div class="table-container">
         <table>
             <thead>
@@ -631,6 +630,10 @@
     <div class="modal-content">
         <h2>Ansys 이메일 원문 붙여넣기</h2>
         <p>수신받으신 이메일 내용 전체를 복사하여 아래 상자에 붙여넣고 [자동 분석 및 등록]을 눌러주세요.</p>
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label>고객 이름 (담당자) 일괄 지정 (선택)</label>
+            <input type="text" id="emailCustomerName" placeholder="예: 홍길동 팀장 (본 메일 내 모든 건에 일괄 적용)">
+        </div>
         <div class="input-group" style="margin-bottom: 12px;">
             <label>기본 전담 담당자 지정 (선택)</label>
             <div style="display: flex; gap: 10px;">
@@ -1147,7 +1150,13 @@
     function openManualModal() { document.getElementById('manualModal').style.display = 'flex'; }
     function closeManualModal() { document.getElementById('manualModal').style.display = 'none'; clearInputs(); }
     function openEmailModal() { document.getElementById('emailModal').style.display = 'flex'; }
-    function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; document.getElementById('emailText').value = ''; }
+    function closeEmailModal() { 
+        document.getElementById('emailModal').style.display = 'none'; 
+        document.getElementById('emailText').value = ''; 
+        document.getElementById('emailCustomerName').value = '';
+        document.getElementById('emailSalesManager').value = '';
+        document.getElementById('emailSeManager').value = '';
+    }
 
     function generateRenewalEmailFromSidebar() {
         const id = parseFloat(document.getElementById('editId').value);
@@ -1200,6 +1209,7 @@
         const rawText = document.getElementById('emailText').value;
         if (!rawText.trim()) { alert('이메일 내용을 입력해주세요.'); return; }
 
+        const defaultCustomer = document.getElementById('emailCustomerName').value.trim();
         const defaultSales = document.getElementById('emailSalesManager').value.trim() || '미지정';
         const defaultSe = document.getElementById('emailSeManager').value.trim() || '미지정';
 
@@ -1286,6 +1296,7 @@
 
                     const updatedData = {
                         ...existingItem,
+                        customerName: defaultCustomer ? defaultCustomer : existingItem.customerName,
                         expDate: expDate,
                         isRenewed: true,
                         renewalCount: (existingItem.renewalCount || 0) + 1,
@@ -1303,7 +1314,7 @@
                 const newEntry = {
                     id: Date.now() + Math.random(),
                     accountName,
-                    customerName: '',
+                    customerName: defaultCustomer,
                     accountNo,
                     salesManager: defaultSales,
                     seManager: defaultSe,
@@ -1366,6 +1377,7 @@
 
                 const updatedData = {
                     ...existingItem,
+                    customerName: customerName ? customerName : existingItem.customerName,
                     salesManager: salesManager !== '미지정' ? salesManager : existingItem.salesManager,
                     seManager: seManager !== '미지정' ? seManager : existingItem.seManager,
                     expDate: expDate,
